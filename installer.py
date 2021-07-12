@@ -8,6 +8,7 @@ import winreg
 import zipfile
 from glob import glob
 from pathlib import Path
+from typing import Union
 
 
 def get_steam_path() -> Path:
@@ -16,47 +17,45 @@ def get_steam_path() -> Path:
 
 
 def is_omori_installed(steampath: Path) -> bool:
-    return steampath.joinpath("steamapps/common/OMORI/OMORI.exe").exists()
+    return (steampath / "steamapps/common/OMORI/OMORI.exe").exists()
 
 
 def is_gomori_installed(steampath: Path) -> bool:
-    return steampath.joinpath("steamapps/common/OMORI/www/gomori/gomori.js").exists()
+    return (steampath / "steamapps/common/OMORI/www/gomori/gomori.js").exists()
 
 
 def is_plutofix_installed(steampath: Path) -> bool:
     return "data_pluto" in \
-           steampath \
-               .joinpath("steamapps/common/OMORI/www/gomori/constants/filetypes.js") \
-               .read_text(encoding="utf-8")
+           (steampath / "steamapps/common/OMORI/www/gomori/constants/filetypes.js").read_text(encoding="utf-8")
 
 
 def are_translations_installed(steampath: Path) -> bool:
-    return steampath.joinpath("steamapps/common/OMORI/www/mods/omoritr/mod.json").exists()
+    return (steampath / "steamapps/common/OMORI/www/mods/omoritr/mod.json").exists()
 
 
 def get_translation_version(steampath: Path) -> str:
     return json.loads(
-        steampath.joinpath("steamapps/common/OMORI/www/mods/omoritr/mod.json").read_text(encoding="utf-8")
+        (steampath / "steamapps/common/OMORI/www/mods/omoritr/mod.json").read_text(encoding="utf-8")
     )["version"]
 
 
-def install_gomori(gomori_archive_path, game_dir) -> None:
+def install_gomori(gomori_archive_path: Path, game_dir: Path) -> None:
     gomori_archive = zipfile.ZipFile(gomori_archive_path, "r", zipfile.ZIP_LZMA)
     gomori_archive.extractall(game_dir)
 
 
-def install_translations(translation_archive_path, game_dir) -> None:
+def install_translations(translation_archive_path: Path, game_dir: Path) -> None:
     translation_archive = zipfile.ZipFile(translation_archive_path, "r", zipfile.ZIP_LZMA)
     translation_archive.extractall(game_dir.joinpath("www/mods/"))
 
 
-def get_packed_tl_version(translation_archive_path) -> str:
+def get_packed_tl_version(translation_archive_path: Path) -> str:
     translation_archive = zipfile.ZipFile(translation_archive_path, "r", zipfile.ZIP_LZMA)
     packed_mod_manifest = translation_archive.read("omoritr/mod.json")
     return json.loads(packed_mod_manifest)["version"]
 
 
-def safe_delete(container, paths) -> None:
+def safe_delete(container: Union[Path, str], paths: list[Union[Path, str]]) -> None:
     real_container_path = os.path.realpath(container)
     for target_path in paths:
         real_target_path = os.path.realpath(target_path)
@@ -70,7 +69,7 @@ def safe_delete(container, paths) -> None:
             os.remove(real_target_path)
 
 
-def clear_gomori(game_dir) -> None:
+def clear_gomori(game_dir: Path) -> None:
     names = ["www/JSON-Patch*", "www/adm-zip*", "www/gomori", "www/index.html"]
     gomori_dirs = []
     for name in names:
@@ -78,7 +77,7 @@ def clear_gomori(game_dir) -> None:
     safe_delete(game_dir, gomori_dirs)
 
 
-def clear_tl(game_dir) -> None:
+def clear_tl(game_dir: Path) -> None:
     tl_path = game_dir / "www/mods/omoritr"
     if tl_path.exists():
         safe_delete(game_dir, [tl_path])
