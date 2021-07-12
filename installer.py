@@ -1,4 +1,5 @@
 import json
+import logging
 import os.path
 import shutil
 import sys
@@ -16,26 +17,26 @@ def get_steam_path() -> Path:
         return Path(winreg.QueryValueEx(key, "SteamPath")[0])
 
 
-def is_omori_installed(steampath: Path) -> bool:
-    return (steampath / "steamapps/common/OMORI/OMORI.exe").exists()
+def is_omori_installed(gamepath: Path) -> bool:
+    return (gamepath / "OMORI.exe").exists()
 
 
-def is_gomori_installed(steampath: Path) -> bool:
-    return (steampath / "steamapps/common/OMORI/www/gomori/gomori.js").exists()
+def is_gomori_installed(gamepath: Path) -> bool:
+    return (gamepath / "www/gomori/gomori.js").exists()
 
 
-def is_plutofix_installed(steampath: Path) -> bool:
+def is_plutofix_installed(gamepath: Path) -> bool:
     return "data_pluto" in \
-           (steampath / "steamapps/common/OMORI/www/gomori/constants/filetypes.js").read_text(encoding="utf-8")
+           (gamepath / "www/gomori/constants/filetypes.js").read_text(encoding="utf-8")
 
 
-def are_translations_installed(steampath: Path) -> bool:
-    return (steampath / "steamapps/common/OMORI/www/mods/omoritr/mod.json").exists()
+def are_translations_installed(gamepath: Path) -> bool:
+    return (gamepath / "www/mods/omoritr/mod.json").exists()
 
 
-def get_translation_version(steampath: Path) -> str:
+def get_translation_version(gamepath: Path) -> str:
     return json.loads(
-        (steampath / "steamapps/common/OMORI/www/mods/omoritr/mod.json").read_text(encoding="utf-8")
+        (gamepath / "www/mods/omoritr/mod.json").read_text(encoding="utf-8")
     )["version"]
 
 
@@ -56,38 +57,69 @@ def get_packed_tl_version(translation_archive_path: Path) -> str:
 
 
 def safe_delete(container: Union[Path, str], paths: list[Union[Path, str]]) -> None:
+    logging.warning(f"Collecting information for delete operation")
     real_container_path = os.path.realpath(container)
+    logging.debug(f"{container = }")
+    logging.warning(f"{real_container_path = }")
     for target_path in paths:
+        logging.warning(f" -- Collecting information about {target_path = }")
         real_target_path = os.path.realpath(target_path)
+        logging.debug(f"{target_path = }")
+        logging.warning(f"{real_target_path = }")
         if not os.path.exists(real_target_path):
+            logging.error("This file does not exist. Why?")
             continue
         if not real_target_path.startswith(real_container_path):
+            logging.error("This file is not inside the container. Why?")
             continue
         if os.path.isdir(real_target_path):
+            logging.debug("Path is a directory. Performing recursive directory deleting operation.")
             shutil.rmtree(real_target_path)
         else:
-            os.remove(real_target_path)
+            logging.debug("Path is not a directory. Performing unlinking operation.")
+            os.unlink(real_target_path)
 
 
 def clear_gomori(game_dir: Path) -> None:
     names = ["www/JSON-Patch*", "www/adm-zip*", "www/gomori", "www/index.html"]
     gomori_dirs = []
     for name in names:
-        gomori_dirs.extend(glob(str(game_dir / name)))
+        glob_path = str(game_dir / name)
+        logging.debug(f"{glob_path = }")
+        glob_result = glob(glob_path)
+        logging.debug(f"{glob_result = }")
+        gomori_dirs.extend(glob_result)
+    logging.debug(f"{gomori_dirs = }")
     safe_delete(game_dir, gomori_dirs)
 
 
 def clear_tl(game_dir: Path) -> None:
     tl_path = game_dir / "www/mods/omoritr"
+    logging.debug(f"{tl_path = }")
     if tl_path.exists():
         safe_delete(game_dir, [tl_path])
 
 
 def main():
+    logging.basicConfig(
+        format="%(asctime)s %(levelname)s %(message)s",
+        level=logging.DEBUG,
+        filename="omoritr-installer.log"
+    )
+
+    logging.info("Starting omoritr-installer")
+    logging.info("OMORI Türkçe Çeviri Ekibi, 2021")
+    logging.info("https://omori-turkce.com")
+    logging.info("Installer Emre Özcan github.com/emreozcan")
+
     bundle_dir = Path(__file__).parent
+    logging.debug(f"{bundle_dir = }")
     gomori_archive_path = Path.cwd() / bundle_dir / "res/gomori.zip"
+    logging.debug(f"{gomori_archive_path = }")
     translation_archive_path = Path.cwd() / bundle_dir / "res/omoritr.zip"
+    logging.debug(f"{translation_archive_path = }")
     icon_path = Path.cwd() / bundle_dir / "res/transparent-256.ico"
+    logging.debug(f"{icon_path = }")
 
     root = tkinter.Tk()
     root.title("OMORI Türkçe Yama yükleyicisi")
@@ -101,11 +133,20 @@ def main():
     try:
         steam_dir = get_steam_path()
     except FileNotFoundError:
+        logging.warning("Steam not found.")
         pass
+
+    logging.debug(f"{steam_dir = }")
+
+    game_dir = steam_dir.joinpath("steamapps/common/OMORI/")
+    logging.debug(f"{game_dir = }")
+
+    omori_installed = steam_dir is not None and is_omori_installed(gamepath=game_dir)
+    logging.debug(f"{omori_installed = }")
 
     steam_info_label = tkinter.Label(root, justify="left", anchor="w")
     steam_info_label.pack(fill="x", padx=5, pady=5)
-    if not (steam_dir is not None and is_omori_installed(steam_dir)):
+    if not omori_installed:
         steam_info_label.config(
             text="Bilgisayarınızda OMORI tespit edilememiştir.\n"
                  "Lütfen bilgisayarınıza OMORI yükleyip bu programı tekrar çalıştırın.",
@@ -114,33 +155,39 @@ def main():
         root.mainloop()
         sys.exit(1)
 
-    gomori_installed = is_gomori_installed(steampath=steam_dir)
-    plutofix_installed = is_plutofix_installed(steampath=steam_dir) if gomori_installed else False
+    gomori_installed = is_gomori_installed(gamepath=game_dir)
+    logging.debug(f"{gomori_installed = }")
+    plutofix_installed = is_plutofix_installed(gamepath=game_dir) if gomori_installed else False
+    logging.debug(f"{plutofix_installed = }")
     gomori_install_required = not gomori_installed or not plutofix_installed
+    logging.debug(f"{gomori_install_required = }")
 
-    tl_installed = are_translations_installed(steampath=steam_dir)
-    tl_version = get_translation_version(steampath=steam_dir) if tl_installed else None
+    tl_installed = are_translations_installed(gamepath=game_dir)
+    logging.debug(f"{tl_installed = }")
+    tl_version = get_translation_version(gamepath=game_dir) if tl_installed else None
+    logging.debug(f"(installed) {tl_version = }")
+
+    packed_tl_version = get_packed_tl_version(translation_archive_path)
+    logging.debug(f"{packed_tl_version = }")
 
     steam_info_label.config(
         text="OMORI bilgisayarınızda otomatik olarak tespit edilmiştir.\n"
              "Bilgileri inceleyip düğmeye tıklayarak yamayı yükleyebilirsiniz."
     )
 
-    game_dir = steam_dir.joinpath("steamapps/common/OMORI/")
-
     tkinter.Label(root, text="Oyun konumu:", justify="left", anchor="w") \
         .pack(fill="x", padx=5, pady=(5, 0))
 
     game_location_entry = tkinter.Entry(root, justify="left")
     game_location_entry.pack(fill="x", padx=5, pady=(0, 5))
-    game_location_entry.insert(0, game_dir)
+    game_location_entry.insert(0, os.path.realpath(game_dir))
     game_location_entry.config(state="disabled")
 
     tkinter.Label(root, text="Yapılan kontroller:", justify="left", anchor="w") \
         .pack(fill="x", padx=5, pady=(5, 0))
 
     game_installed_checkbox = tkinter.Checkbutton(root, text="OMORI yüklenmiş", state="disabled", anchor="w")
-    if is_omori_installed(steam_dir):
+    if omori_installed:
         game_installed_checkbox.select()
     game_installed_checkbox.pack(fill="x", padx=5, pady=0)
 
@@ -182,11 +229,11 @@ def main():
     to_install_tl_checkbox = tkinter.Checkbutton(root, state="disabled", anchor="w")
     if tl_installed:
         to_install_tl_checkbox.config(
-            text=f"Türkçe Yama değiştirilecek (yeni: {get_packed_tl_version(translation_archive_path)})"
+            text=f"Türkçe Yama değiştirilecek (yeni: {packed_tl_version})"
         )
     else:
         to_install_tl_checkbox.config(
-            text=f"Türkçe Yama yüklenecek ({get_packed_tl_version(translation_archive_path)})"
+            text=f"Türkçe Yama yüklenecek ({packed_tl_version})"
         )
     to_install_tl_checkbox.select()
     to_install_tl_checkbox.pack(fill="x", padx=5, pady=(0, 5))
@@ -194,14 +241,27 @@ def main():
     def apply_button_callback():
         action_button.config(state="disabled")
         try:
+            logging.info("Applying operations")
             if gomori_install_required:
                 if gomori_installed:
+                    logging.info("Trying to remove old GOMORI installation")
                     clear_gomori(game_dir=game_dir)
+                    logging.info("Removed old GOMORI installation.")
+                logging.info("Trying to install GOMORI")
                 install_gomori(gomori_archive_path=gomori_archive_path, game_dir=game_dir)
+                logging.info("Installed GOMORI.")
             if tl_installed:
+                logging.info(f"Trying to remove old translation patch ({tl_version = })")
                 clear_tl(game_dir=game_dir)
+                logging.info("Removed old translation patch.")
+            logging.info(f"Installing translation patch ({packed_tl_version = })")
             install_translations(translation_archive_path=translation_archive_path, game_dir=game_dir)
+            logging.info("Installed translation patch.")
         except Exception:
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+            formatted_exception = "".join(traceback.format_exception(exc_type, exc_value, exc_traceback))
+            logging.error(formatted_exception)
+
             alert = tkinter.Toplevel(root)
             alert.title("OMORI Türkçe Yama yükleyicisi")
             alert.iconbitmap(icon_path)
@@ -209,9 +269,6 @@ def main():
 
             tkinter.Label(alert, text="OMORI Türkçe Yama yükleme işlemi sırasında beklenmeyen bir hata oluştu.") \
                 .pack(fill="x", padx=5, pady=5)
-
-            exc_type, exc_value, exc_traceback = sys.exc_info()
-            formatted_exception = "".join(traceback.format_exception(exc_type, exc_value, exc_traceback))
 
             stacktrace_widget = tkinter.Text(alert, width=100, height=20)
             stacktrace_widget.insert("1.0", formatted_exception)
