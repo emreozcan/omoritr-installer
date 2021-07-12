@@ -1,0 +1,9 @@
+.idea/
+.vscode/
+
+staging/
+res/gomori.zip
+res/omoritr.zip
+
+build/
+dist/
