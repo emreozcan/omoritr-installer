@@ -9,7 +9,6 @@ import winreg
 import zipfile
 from glob import glob
 from pathlib import Path
-from typing import Union
 
 
 def get_steam_path() -> Path:
@@ -17,8 +16,34 @@ def get_steam_path() -> Path:
         return Path(winreg.QueryValueEx(key, "SteamPath")[0])
 
 
-def is_omori_installed(gamepath: Path) -> bool:
-    return (gamepath / "OMORI.exe").exists()
+def get_game_dir(steampath: Path) -> Path or None:
+    default_path = steampath / "steamapps/common/OMORI"
+    if (default_path / "OMORI.exe").exists():
+        return default_path
+
+    library_map_file = steampath / "steamapps/libraryfolders.vdf"
+    if not library_map_file.exists():
+        return None
+    logging.warning(f"Collecting strings from {library_map_file = }")
+    strings = library_map_file.read_text("utf-8").split("\"")
+    logging.debug(f"Collected {len(strings) = } strings.")
+    for string in strings:
+        candidate_path = Path(string)
+        logging.debug(f"Checking library candidate {candidate_path = }")
+        if not candidate_path.exists():
+            logging.debug(" -> Path doesn't exist.")
+            continue
+        logging.debug(" -> Path exists.")
+        candidate_exec_path = candidate_path / "steamapps/common/OMORI/OMORI.exe"
+        if candidate_exec_path.exists():
+            logging.debug(" -> It has OMORI.")
+            game_dir = candidate_exec_path.parent
+            logging.info(f"Game found at {game_dir = }")
+            return game_dir
+        logging.debug(" -> It doesn't have OMORI.")
+    logging.error("No string contained a library path that had OMORI in it.")
+    logging.error("".join(["Listing all strings:\n", "\n".join(strings)]))
+    return None
 
 
 def is_gomori_installed(gamepath: Path) -> bool:
@@ -56,8 +81,8 @@ def get_packed_tl_version(translation_archive_path: Path) -> str:
     return json.loads(packed_mod_manifest)["version"]
 
 
-def safe_delete(container: Union[Path, str], paths: list[Union[Path, str]]) -> None:
-    logging.warning(f"Collecting information for delete operation")
+def safe_delete(container: Path or str, paths: list[Path or str]) -> None:
+    logging.warning("Collecting information for delete operation")
     real_container_path = os.path.realpath(container)
     logging.debug(f"{container = }")
     logging.warning(f"{real_container_path = }")
@@ -138,10 +163,10 @@ def main():
 
     logging.debug(f"{steam_dir = }")
 
-    game_dir = steam_dir.joinpath("steamapps/common/OMORI/")
+    game_dir = get_game_dir(steampath=steam_dir)
     logging.debug(f"{game_dir = }")
 
-    omori_installed = steam_dir is not None and is_omori_installed(gamepath=game_dir)
+    omori_installed = game_dir is not None
     logging.debug(f"{omori_installed = }")
 
     steam_info_label = tkinter.Label(root, justify="left", anchor="w")
