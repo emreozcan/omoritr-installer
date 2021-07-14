@@ -242,16 +242,24 @@ class InstallerGUI(tkinter.Frame):
         # endregion
 
     def react_env_to_steam_dir(self, steam_dir: Path):
+        logging.info(f"Steam path updated. {steam_dir = }")
         self.steam_dir = steam_dir
         self.game_dir = get_game_dir(steampath=self.steam_dir)
+        logging.debug(f"{self.game_dir = }")
 
         self.omori_installed = self.game_dir is not None
+        logging.debug(f"{self.omori_installed = }")
         self.gomori_installed = is_gomori_installed(gamepath=self.game_dir) if self.omori_installed else False
+        logging.debug(f"{self.gomori_installed = }")
         self.plutofix_installed = is_plutofix_installed(gamepath=self.game_dir) if self.gomori_installed else False
+        logging.debug(f"{self.plutofix_installed = }")
         self.gomori_install_required = not self.gomori_installed or not self.plutofix_installed
+        logging.debug(f"{self.gomori_install_required = }")
 
         self.tl_installed = are_translations_installed(gamepath=self.game_dir) if self.omori_installed else False
+        logging.debug(f"{self.tl_installed = }")
         self.installed_tl_version = get_translation_version(gamepath=self.game_dir) if self.tl_installed else None
+        logging.debug(f"{self.installed_tl_version = }")
 
         self.react_widgets_to_env()
 
@@ -420,7 +428,7 @@ if __name__ == '__main__':
     logging.info("Starting omoritr-installer")
     logging.info("OMORI Türkçe Çeviri Ekibi, 2021")
     logging.info("https://omori-turkce.com")
-    logging.info("Installer Emre Özcan github.com/emreozcan")
+    logging.info("Emre Özcan github.com/emreozcan")
 
     BUNDLE_DIR = Path(__file__).parent
     GOMORI_ARCHIVE_PATH = Path.cwd() / BUNDLE_DIR / "res/gomori.zip"
