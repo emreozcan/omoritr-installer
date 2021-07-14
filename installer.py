@@ -5,6 +5,7 @@ import shutil
 import sys
 import tkinter
 import traceback
+import webbrowser
 import winreg
 import zipfile
 from glob import glob
@@ -167,13 +168,18 @@ class InstallerGUI(tkinter.Frame):
         self.master = master
         self.self_frame = tkinter.Frame(master)
 
+        # region Add tkinter widgets to self.master
         self.menu = tkinter.Menu(self.master)
         self.master.config(menu=self.menu)
 
         self.help_menu = tkinter.Menu(self.menu, tearoff=0)
         self.menu.add_cascade(label="Yardım", menu=self.help_menu)
 
-        # region Add tkinter widgets to self.master
+        self.help_menu.add_command(label="İnternet sitemiz", command=lambda: webbrowser.open(ONLINE_WEBSITE))
+        self.help_menu.add_command(label="Çeviride emeği geçenler", command=lambda: webbrowser.open(ONLINE_CREDITS))
+        self.help_menu.add_separator()
+        self.help_menu.add_command(label="Yükleyici hakkında...", command=self.onclick_about_installer)
+
         self.welcome_label = tkinter.Label(
             self.master,
             text="OMORI Türkçe Yama yükleyicisine hoş geldiniz.",
@@ -312,8 +318,6 @@ class InstallerGUI(tkinter.Frame):
                 clear_tl(game_dir=self.game_dir)
             install_translations(translation_archive_path=TL_ARCHIVE_PATH, game_dir=self.game_dir)
         except Exception:
-            tmp_click_sponge.destroy()
-
             exc_type, exc_value, exc_traceback = sys.exc_info()
             formatted_exception = "".join(traceback.format_exception(exc_type, exc_value, exc_traceback))
 
@@ -330,8 +334,6 @@ class InstallerGUI(tkinter.Frame):
             stacktrace_widget.insert("1.0", formatted_exception)
             stacktrace_widget.pack(fill="x", padx=5, pady=5)
         else:
-            tmp_click_sponge.destroy()
-
             alert = tkinter.Toplevel(self.master)
             alert.grab_set()
             alert.title("OMORI Türkçe Yama yükleyicisi")
@@ -344,7 +346,52 @@ class InstallerGUI(tkinter.Frame):
             tkinter.Button(alert, text="Tamam", command=alert.destroy) \
                 .pack(ipadx=15, padx=15, pady=(5, 15))
 
+        tmp_click_sponge.destroy()
+
         self.react_env_to_steam_dir(self.steam_dir)
+
+    def onclick_about_installer(self):
+        about_window = tkinter.Toplevel(self.master)
+        about_window.grab_set()
+        about_window.title("OMORI Türkçe Yama yükleyicisi hakkında")
+        about_window.iconbitmap(ICON_PATH)
+
+        tkinter.Label(
+            about_window, anchor="w", justify="left",
+            text="OMORI Türkçe Yama yükleyicisi"
+        ).pack(fill="x", padx=(55, 15), pady=(10, 0))
+
+        tkinter.Label(
+            about_window, anchor="w", justify="left",
+            text=f"Yükleyici Sürüm 2, Çeviri Sürüm {PACKED_TL_VERSION}"
+        ).pack(fill="x", padx=(55, 15), pady=(0, 20))
+
+        tkinter.Label(
+            about_window, anchor="w", justify="left", wraplength=350,
+            text="Bu yükleyici OMORI Türkçe Çeviri Ekibi için Emre Özcan tarafından hazırlanmıştır ve "
+                 "OMORI Türkçe Çeviri Ekibi'ne dağıtım hakkı tanınmıştır."
+        ).pack(fill="x", padx=(55, 15))
+
+        tkinter.Label(
+            about_window, anchor="w", justify="left", wraplength=350,
+            text="emreis.com"
+        ).pack(fill="x", padx=(55, 15))
+
+        tkinter.Label(
+            about_window, anchor="w", justify="left", wraplength=350,
+            text="OMORI Türkçe Çeviri Ekibi ikonu © 2021 claus"
+        ).pack(fill="x", padx=(55, 15), pady=(30, 0))
+        tkinter.Label(
+            about_window, anchor="w", justify="left", wraplength=350,
+            text="Yükleyici © 2021 Emre Özcan emreis.com"
+        ).pack(fill="x", padx=(55, 15), pady=(0, 20))
+
+        tkinter.Label(
+            about_window, anchor="w", justify="left", wraplength=350,
+            text="UYARI: Bu yükleyicinin dağıtım hakkı yalnızca OMORI Türkçe Çeviri Ekibi'ne verilmiştir. Başkaları "
+                 "tarafından dağıtılamaz. Yeniden dağıtmayınız, https://omori-turkce.com/indir sayfasına bağlantı "
+                 "veriniz."
+        ).pack(fill="x", padx=(55, 15), pady=(10, 20))
 
 
 def set_checkbox_state(checkbox: tkinter.Checkbutton, condition: bool, true_text: str or None = None,
@@ -381,5 +428,8 @@ if __name__ == '__main__':
     ICON_PATH = Path.cwd() / BUNDLE_DIR / "res/transparent-256.ico"
 
     PACKED_TL_VERSION = get_packed_tl_version(TL_ARCHIVE_PATH)
+
+    ONLINE_WEBSITE = "https://omori-turkce.com"
+    ONLINE_CREDITS = "https://omori-turkce.com/emegi-gecenler"
 
     main()
