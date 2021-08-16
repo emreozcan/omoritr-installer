@@ -455,7 +455,7 @@ class InstallerGUI(tkinter.Frame):
                 elif self.gomori_install_required:
                     logging.info("Uninstalling GOMORI...")
                     clear_gomori(game_dir=self.game_dir)
-                    logging.info("Installing OMORI...")
+                    logging.info("Installing GOMORI...")
                     install_gomori(gomori_archive_path=GOMORI_ARCHIVE_PATH, game_dir=self.game_dir)
 
             if selected_modloader == "ONELOADER":
