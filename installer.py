@@ -51,6 +51,10 @@ def is_gomori_installed(gamepath: Path) -> bool:
     return (gamepath / "www/gomori/gomori.js").exists()
 
 
+def is_oneloader_installed(gamepath: Path) -> bool:
+    return (gamepath / "www/mods/oneloader/mod.json").exists()
+
+
 def is_plutofix_installed(gamepath: Path) -> bool or None:
     filetypes_path = gamepath / "www/gomori/constants/filetypes.js"
     if not filetypes_path.exists():
@@ -60,6 +64,20 @@ def is_plutofix_installed(gamepath: Path) -> bool or None:
 
 def are_translations_installed(gamepath: Path) -> bool:
     return (gamepath / "www/mods/omoritr/mod.json").exists()
+
+
+def get_gomori_version(gamepath: Path) -> str or None:
+    manifest_path = gamepath / "www/mods/gomori/mod.json"
+    if not manifest_path.exists():
+        return None
+    return json.loads(manifest_path.read_text(encoding="utf-8"))["version"]
+
+
+def get_oneloader_version(gamepath: Path) -> str or None:
+    manifest_path = gamepath / "www/mods/oneloader/mod.json"
+    if not manifest_path.exists():
+        return None
+    return json.loads(manifest_path.read_text(encoding="utf-8"))["version"]
 
 
 def get_translation_version(gamepath: Path) -> str or None:
@@ -74,6 +92,11 @@ def install_gomori(gomori_archive_path: Path, game_dir: Path) -> None:
     gomori_archive.extractall(game_dir)
 
 
+def install_oneloader(oneloader_archive_path: Path, game_dir: Path) -> None:
+    oneloader_archive = zipfile.ZipFile(oneloader_archive_path, "r", zipfile.ZIP_LZMA)
+    oneloader_archive.extractall(game_dir)
+
+
 def install_translations(translation_archive_path: Path, game_dir: Path) -> None:
     translation_archive = zipfile.ZipFile(translation_archive_path, "r", zipfile.ZIP_LZMA)
     translation_archive.extractall(game_dir / "www/mods/")
@@ -82,6 +105,18 @@ def install_translations(translation_archive_path: Path, game_dir: Path) -> None
 def get_packed_tl_version(translation_archive_path: Path) -> str:
     translation_archive = zipfile.ZipFile(translation_archive_path, "r", zipfile.ZIP_LZMA)
     packed_mod_manifest = translation_archive.read("omoritr/mod.json")
+    return json.loads(packed_mod_manifest)["version"]
+
+
+def get_packed_gomori_version(gomori_archive_path: Path) -> str:
+    translation_archive = zipfile.ZipFile(gomori_archive_path, "r", zipfile.ZIP_LZMA)
+    packed_mod_manifest = translation_archive.read("www/mods/gomori/mod.json")
+    return json.loads(packed_mod_manifest)["version"]
+
+
+def get_packed_oneloader_version(oneloader_archive_path: Path) -> str:
+    translation_archive = zipfile.ZipFile(oneloader_archive_path, "r", zipfile.ZIP_LZMA)
+    packed_mod_manifest = translation_archive.read("www/mods/oneloader/mod.json")
     return json.loads(packed_mod_manifest)["version"]
 
 
@@ -110,7 +145,7 @@ def safe_delete(container: Path or str, paths: list[Path or str]) -> None:
 
 
 def clear_gomori(game_dir: Path) -> None:
-    names = ["www/JSON-Patch*", "www/adm-zip*", "www/gomori", "www/index.html"]
+    names = ["www/JSON-Patch*", "www/adm-zip*", "www/gomori", "www/mods/gomori", "www/index.html"]
     gomori_dirs = []
     for name in names:
         glob_path = str(game_dir / name)
@@ -120,6 +155,10 @@ def clear_gomori(game_dir: Path) -> None:
         gomori_dirs.extend(glob_result)
     logging.debug(f"{gomori_dirs = }")
     safe_delete(game_dir, gomori_dirs)
+
+
+def clear_oneloader(game_dir: Path) -> None:
+    safe_delete(game_dir, [game_dir / "www/modloader", game_dir / "www/mods/oneloader"])
 
 
 def clear_tl(game_dir: Path) -> None:
@@ -156,8 +195,12 @@ class InstallerGUI(tkinter.Frame):
     omori_installed: bool
 
     gomori_installed: bool
+    installed_gomori_version: str
     plutofix_installed: bool
     gomori_install_required: bool
+
+    oneloader_installed: bool
+    installed_oneloader_version: str
 
     tl_installed: bool
     installed_tl_version: str
@@ -206,24 +249,44 @@ class InstallerGUI(tkinter.Frame):
         self.game_installed_checkbox.pack(fill="x", padx=5, pady=0)
 
         self.gomori_installed_checkbox = tkinter.Checkbutton(
-            self.master, text="GOMORI yüklenmiş", state="disabled", anchor="w")
+            self.master, state="disabled", anchor="w")
         self.gomori_installed_checkbox.pack(fill="x", padx=5, pady=0)
 
         self.plutofix_installed_checkbox = tkinter.Checkbutton(
             self.master, text="GOMORI için \"data_pluto fix\" yapılmış", state="disabled", anchor="w")
         self.plutofix_installed_checkbox.pack(fill="x", padx=5, pady=0)
 
+        self.oneloader_installed_checkbox = tkinter.Checkbutton(
+            self.master, state="disabled", anchor="w")
+        self.oneloader_installed_checkbox.pack(fill="x", padx=5, pady=0)
+
         self.tl_installed_checkbox = tkinter.Checkbutton(
-            self.master, text="Türkçe Yama yüklenmiş", state="disabled", anchor="w")
+            self.master, state="disabled", anchor="w")
         self.tl_installed_checkbox.pack(fill="x", padx=5, pady=(0, 5))
+
+        self.modloader_choice_label = tkinter.Label(
+            self.master, text="Mod yükleyicisi seçimi", justify="left", anchor="w")
+        self.modloader_choice_label.pack(fill="x", padx=5, pady=(5, 0))
+
+        self.modloader_choice_var = tkinter.StringVar()
+
+        self.modloader_choice_oneloader_radio_button = tkinter.Radiobutton(
+            self.master, text="OneLoader", variable=self.modloader_choice_var, value="ONELOADER",
+            command=self.react_to_modloader_selection, anchor="w")
+        self.modloader_choice_oneloader_radio_button.pack(fill="x", padx=5, pady=0)
+
+        self.modloader_choice_gomori_radio_button = tkinter.Radiobutton(
+            self.master, text="GOMORI", variable=self.modloader_choice_var, value="GOMORI",
+            command=self.react_to_modloader_selection, anchor="w")
+        self.modloader_choice_gomori_radio_button.pack(fill="x", padx=5, pady=(0, 5))
 
         self.actions_required_label = tkinter.Label(
             self.master, text="Yapılması gereken işlemler:", justify="left", anchor="w")
         self.actions_required_label.pack(fill="x", padx=5, pady=(5, 0))
 
-        self.to_install_gomori_checkbox = tkinter.Checkbutton(
+        self.to_install_modloader_checkbox = tkinter.Checkbutton(
             self.master, text="GOMORI yüklenecek", state="disabled", anchor="w")
-        self.to_install_gomori_checkbox.pack(fill="x", padx=5)
+        self.to_install_modloader_checkbox.pack(fill="x", padx=5)
 
         self.to_install_tl_checkbox = tkinter.Checkbutton(self.master, state="disabled", anchor="w")
         self.to_install_tl_checkbox.pack(fill="x", padx=5, pady=(0, 5))
@@ -241,6 +304,49 @@ class InstallerGUI(tkinter.Frame):
         self.credit_frame.pack(fill="x", side="bottom")
         # endregion
 
+    def react_to_modloader_selection(self):
+        if not hasattr(self, "steam_dir"):
+            return
+
+        self.apply_button.config(state="disabled")
+
+        selected_modloader = self.modloader_choice_var.get()
+        if selected_modloader == "GOMORI":
+            if self.oneloader_installed:
+                set_checkbox_state(self.to_install_modloader_checkbox, True)
+                self.to_install_modloader_checkbox.config(
+                    text="OneLoader, GOMORI ile değiştirilecek"
+                )
+            else:
+                set_checkbox_state(self.to_install_modloader_checkbox, self.gomori_install_required)
+                self.to_install_modloader_checkbox.config(
+                    text="GOMORI \"data_plutofix\" için değiştirilecek" if self.gomori_installed else "GOMORI yüklenecek"
+                )
+        elif selected_modloader == "ONELOADER":
+            if self.gomori_installed and self.oneloader_installed:
+                set_checkbox_state(self.to_install_modloader_checkbox, False)
+                self.to_install_modloader_checkbox.config(
+                    text="OneLoader yüklenecek"
+                )
+            elif self.gomori_installed and not self.oneloader_installed:
+                set_checkbox_state(self.to_install_modloader_checkbox, True)
+                self.to_install_modloader_checkbox.config(
+                    text="GOMORI'nin yanına OneLoader yüklenecek"
+                )
+            else:
+                set_checkbox_state(self.to_install_modloader_checkbox, not self.oneloader_installed)
+                self.to_install_modloader_checkbox.config(
+                    text="OneLoader yüklenecek"
+                )
+        else:
+            set_checkbox_state(self.to_install_modloader_checkbox, False)
+            self.to_install_modloader_checkbox.config(
+                text="HATA: Mod yükleyicisi seçiniz."
+            )
+            return
+
+        self.apply_button.config(state="normal")
+
     def react_env_to_steam_dir(self, steam_dir: Path):
         logging.info(f"Steam path updated. {steam_dir = }")
         self.steam_dir = steam_dir
@@ -251,15 +357,27 @@ class InstallerGUI(tkinter.Frame):
         logging.debug(f"{self.omori_installed = }")
         self.gomori_installed = is_gomori_installed(gamepath=self.game_dir) if self.omori_installed else False
         logging.debug(f"{self.gomori_installed = }")
+        self.installed_gomori_version = get_gomori_version(gamepath=self.game_dir) if self.gomori_installed else None
+        logging.debug(f"{self.installed_gomori_version = }")
         self.plutofix_installed = is_plutofix_installed(gamepath=self.game_dir) if self.gomori_installed else False
         logging.debug(f"{self.plutofix_installed = }")
         self.gomori_install_required = not self.gomori_installed or not self.plutofix_installed
         logging.debug(f"{self.gomori_install_required = }")
 
+        self.oneloader_installed = is_oneloader_installed(gamepath=self.game_dir)
+        logging.debug(f"{self.oneloader_installed = }")
+        self.installed_oneloader_version = get_oneloader_version(gamepath=self.game_dir) if self.oneloader_installed else None
+        logging.debug(f"{self.installed_oneloader_version = }")
+
         self.tl_installed = are_translations_installed(gamepath=self.game_dir) if self.omori_installed else False
         logging.debug(f"{self.tl_installed = }")
         self.installed_tl_version = get_translation_version(gamepath=self.game_dir) if self.tl_installed else None
         logging.debug(f"{self.installed_tl_version = }")
+
+        if self.gomori_installed and not self.oneloader_installed:
+            self.modloader_choice_gomori_radio_button.invoke()
+        else:
+            self.modloader_choice_oneloader_radio_button.invoke()
 
         self.react_widgets_to_env()
 
@@ -286,18 +404,22 @@ class InstallerGUI(tkinter.Frame):
             self.apply_button.config(state="normal")
 
         set_checkbox_state(self.game_installed_checkbox, self.omori_installed)
-        set_checkbox_state(self.gomori_installed_checkbox, self.gomori_installed)
+        set_checkbox_state(
+            checkbox=self.gomori_installed_checkbox, condition=self.gomori_installed,
+            true_text=f"GOMORI yüklenmiş ({self.installed_gomori_version})",
+            false_text="GOMORI yüklenmiş"
+        )
         set_checkbox_state(self.plutofix_installed_checkbox, self.plutofix_installed)
+        set_checkbox_state(
+            checkbox=self.oneloader_installed_checkbox, condition=self.oneloader_installed,
+            true_text=f"OneLoader yüklenmiş ({self.installed_oneloader_version})",
+            false_text="OneLoader yüklenmiş"
+        )
 
         set_checkbox_state(
             checkbox=self.tl_installed_checkbox, condition=self.tl_installed,
             true_text=f"Türkçe Yama yüklenmiş ({self.installed_tl_version})",
             false_text="Türkçe Yama yüklenmiş"
-        )
-
-        set_checkbox_state(self.to_install_gomori_checkbox, self.gomori_install_required)
-        self.to_install_gomori_checkbox.config(
-            text="GOMORI \"data_plutofix\" için değiştirilecek." if self.gomori_installed else "GOMORI yüklenecek"
         )
 
         set_checkbox_state(self.to_install_tl_checkbox, True)
@@ -310,6 +432,8 @@ class InstallerGUI(tkinter.Frame):
             ])
         )
 
+        self.react_to_modloader_selection()
+
     def onclick_apply_button(self):
         tmp_click_sponge = tkinter.Toplevel(self.master)
         tmp_click_sponge.grab_set()
@@ -317,17 +441,39 @@ class InstallerGUI(tkinter.Frame):
         tmp_click_sponge.iconbitmap(ICON_PATH)
         tmp_click_sponge.resizable(False, False)
 
+        logging.info("Applying operations...")
+
         try:
-            if self.gomori_install_required:
-                if self.gomori_installed:
+            selected_modloader = self.modloader_choice_var.get()
+            logging.debug(f"{selected_modloader = }")
+            if selected_modloader == "GOMORI":
+                if self.oneloader_installed:
+                    logging.info("Uninstalling OneLoader...")
+                    clear_oneloader(game_dir=self.game_dir)
+                    logging.info("Installing GOMORI...")
+                    install_gomori(gomori_archive_path=GOMORI_ARCHIVE_PATH, game_dir=self.game_dir)
+                elif self.gomori_install_required:
+                    logging.info("Uninstalling GOMORI...")
                     clear_gomori(game_dir=self.game_dir)
-                install_gomori(gomori_archive_path=GOMORI_ARCHIVE_PATH, game_dir=self.game_dir)
+                    logging.info("Installing OMORI...")
+                    install_gomori(gomori_archive_path=GOMORI_ARCHIVE_PATH, game_dir=self.game_dir)
+
+            if selected_modloader == "ONELOADER":
+                if not self.oneloader_installed:
+                    logging.info("Installing OneLoader...")
+                    install_oneloader(oneloader_archive_path=ONELOADER_ARCHIVE_PATH, game_dir=self.game_dir)
+
             if self.tl_installed:
+                logging.info("Uninstalling translations...")
                 clear_tl(game_dir=self.game_dir)
+
+            logging.info("Installing translations...")
             install_translations(translation_archive_path=TL_ARCHIVE_PATH, game_dir=self.game_dir)
         except Exception:
             exc_type, exc_value, exc_traceback = sys.exc_info()
             formatted_exception = "".join(traceback.format_exception(exc_type, exc_value, exc_traceback))
+
+            logging.critical(formatted_exception)
 
             alert = tkinter.Toplevel(self.master)
             alert.grab_set()
@@ -363,11 +509,14 @@ class InstallerGUI(tkinter.Frame):
         about_window.grab_set()
         about_window.title("OMORI Türkçe Yama yükleyicisi hakkında")
         about_window.iconbitmap(ICON_PATH)
+        about_window.resizable(False, False)
 
         tkinter.Label(
             about_window, anchor="w", justify="left",
             text="OMORI Türkçe Yama yükleyicisi"
         ).pack(fill="x", padx=(55, 15), pady=(10, 0))
+
+        ABOUT_WRAPLENGTH = 400
 
         tkinter.Label(
             about_window, anchor="w", justify="left",
@@ -375,27 +524,37 @@ class InstallerGUI(tkinter.Frame):
         ).pack(fill="x", padx=(55, 15), pady=(0, 20))
 
         tkinter.Label(
-            about_window, anchor="w", justify="left", wraplength=350,
+            about_window, anchor="w", justify="left", wraplength=ABOUT_WRAPLENGTH,
             text="Bu yükleyici OMORI Türkçe Çeviri Ekibi için Emre Özcan tarafından hazırlanmıştır ve "
                  "OMORI Türkçe Çeviri Ekibi'ne dağıtım hakkı tanınmıştır."
         ).pack(fill="x", padx=(55, 15))
 
         tkinter.Label(
-            about_window, anchor="w", justify="left", wraplength=350,
+            about_window, anchor="w", justify="left", wraplength=ABOUT_WRAPLENGTH,
             text="emreis.com"
         ).pack(fill="x", padx=(55, 15))
 
         tkinter.Label(
-            about_window, anchor="w", justify="left", wraplength=350,
+            about_window, anchor="w", justify="left", wraplength=ABOUT_WRAPLENGTH,
             text="OMORI Türkçe Çeviri Ekibi ikonu © 2021 claus"
         ).pack(fill="x", padx=(55, 15), pady=(30, 0))
         tkinter.Label(
-            about_window, anchor="w", justify="left", wraplength=350,
+            about_window, anchor="w", justify="left", wraplength=ABOUT_WRAPLENGTH,
             text="Yükleyici © 2021 Emre Özcan emreis.com"
         ).pack(fill="x", padx=(55, 15), pady=(0, 20))
 
         tkinter.Label(
-            about_window, anchor="w", justify="left", wraplength=350,
+            about_window, anchor="w", justify="left", wraplength=ABOUT_WRAPLENGTH,
+            text=f"GOMORI ({PACKED_GOMORI_VERSION}) © 2021 Gijs Hogervorst - Licensed under the MIT License"
+        ).pack(fill="x", padx=(55, 15), pady=(5, 0))
+
+        tkinter.Label(
+            about_window, anchor="w", justify="left", wraplength=ABOUT_WRAPLENGTH,
+            text=f"OneLoader ({PACKED_ONELOADER_VERSION}) © 2021 Rph - Licensed under the MIT License"
+        ).pack(fill="x", padx=(55, 15), pady=(0, 5))
+
+        tkinter.Label(
+            about_window, anchor="w", justify="left", wraplength=ABOUT_WRAPLENGTH,
             text="UYARI: Bu yükleyicinin dağıtım hakkı yalnızca OMORI Türkçe Çeviri Ekibi'ne verilmiştir. Başkaları "
                  "tarafından dağıtılamaz. Yeniden dağıtmayınız, https://omori-turkce.com/indir sayfasına bağlantı "
                  "veriniz."
@@ -432,10 +591,13 @@ if __name__ == '__main__':
 
     BUNDLE_DIR = Path(__file__).parent
     GOMORI_ARCHIVE_PATH = Path.cwd() / BUNDLE_DIR / "res/gomori.zip"
+    ONELOADER_ARCHIVE_PATH = Path.cwd() / BUNDLE_DIR / "res/oneloader.zip"
     TL_ARCHIVE_PATH = Path.cwd() / BUNDLE_DIR / "res/omoritr.zip"
     ICON_PATH = Path.cwd() / BUNDLE_DIR / "res/transparent-256.ico"
 
     PACKED_TL_VERSION = get_packed_tl_version(TL_ARCHIVE_PATH)
+    PACKED_GOMORI_VERSION = get_packed_gomori_version(GOMORI_ARCHIVE_PATH)
+    PACKED_ONELOADER_VERSION = get_packed_oneloader_version(ONELOADER_ARCHIVE_PATH)
 
     ONLINE_WEBSITE = "https://omori-turkce.com"
     ONLINE_CREDITS = "https://omori-turkce.com/emegi-gecenler"

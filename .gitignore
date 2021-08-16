@@ -6,7 +6,6 @@ __pycache__/
 omoritr-installer.log
 
 staging/
-res/gomori.zip
 res/omoritr.zip
 
 build/
