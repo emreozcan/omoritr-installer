@@ -140,6 +140,8 @@ def clear_tl(game_dir: Path) -> None:
 
 
 def main(event_loop):
+    urllib.request.urlcleanup()
+
     root = tkinter.Tk()
     root.title("OMORI Türkçe Yama Yükleyicisi")
     root.iconbitmap(ICON_PATH)
