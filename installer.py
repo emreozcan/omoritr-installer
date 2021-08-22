@@ -177,6 +177,7 @@ class PackageManifest:
         if not os.path.realpath(extract_target).startswith(os.path.realpath(game_dir)):
             raise RuntimeError(f"{self.name}: Manifest hedefi ({self.target}) geçersiz.")
         shutil.unpack_archive(filename=filename, extract_dir=extract_target)
+        download_directory.cleanup()
 
 
 @dataclasses.dataclass
