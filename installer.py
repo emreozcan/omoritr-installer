@@ -560,30 +560,19 @@ class InstallerGUI(tkinter.Frame):
         tkinter.Label(
             about_window, anchor="w", justify="left",
             text="OMORI Türkçe Yama yükleyicisi"
-        ).pack(fill="x", padx=(55, 15), pady=(10, 0))
+        ).pack(fill="x", padx=(55, 15), pady=(20, 0))
 
         ABOUT_WRAPLENGTH = 400
 
         tkinter.Label(
             about_window, anchor="w", justify="left",
             text="Yükleyici Sürüm 3"
-        ).pack(fill="x", padx=(55, 15), pady=(0, 20))
-
-        tkinter.Label(
-            about_window, anchor="w", justify="left", wraplength=ABOUT_WRAPLENGTH,
-            text="Bu yükleyici OMORI Türkçe Çeviri Ekibi için Emre Özcan tarafından hazırlanmıştır ve "
-                 "OMORI Türkçe Çeviri Ekibi'ne dağıtım hakkı tanınmıştır."
-        ).pack(fill="x", padx=(55, 15))
-
-        tkinter.Label(
-            about_window, anchor="w", justify="left", wraplength=ABOUT_WRAPLENGTH,
-            text="emreis.com"
-        ).pack(fill="x", padx=(55, 15))
+        ).pack(fill="x", padx=(55, 15), pady=(0, 10))
 
         tkinter.Label(
             about_window, anchor="w", justify="left", wraplength=ABOUT_WRAPLENGTH,
             text="OMORI Türkçe Çeviri Ekibi ikonu © 2021 claus"
-        ).pack(fill="x", padx=(55, 15), pady=(30, 0))
+        ).pack(fill="x", padx=(55, 15), pady=(10, 0))
         tkinter.Label(
             about_window, anchor="w", justify="left", wraplength=ABOUT_WRAPLENGTH,
             text="Yükleyici © 2021 Emre Özcan emreis.com"
