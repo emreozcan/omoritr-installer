@@ -659,7 +659,7 @@ if __name__ == '__main__':
 
     NETWORK_MODE_ENABLED = True
 
-    MANIFEST_URL = "https://raw.githubusercontent.com/omoritr/testing/master/manifest.json"
+    MANIFEST_URL = "https://raw.githubusercontent.com/omoritr/downloads/master/manifest.json"
 
     BUNDLE_DIR = Path(__file__).parent
     ICON_PATH = BUNDLE_DIR / "res/transparent-256.ico"
