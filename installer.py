@@ -177,7 +177,7 @@ class PackageManifest:
         filename, _ = urllib.request.urlretrieve(self.path, Path(download_directory.name) / self.filename)
         extract_target = game_dir / self.target
         if not os.path.realpath(extract_target).startswith(os.path.realpath(game_dir)):
-            raise RuntimeError(f"{self.name}: Manifest hedefi ({self.target}) geçersiz.")
+            raise RuntimeError(f"{self.name}: Manifesto hedefi ({self.target}) geçersiz.")
         shutil.unpack_archive(filename=filename, extract_dir=extract_target)
         download_directory.cleanup()
 
@@ -489,6 +489,13 @@ class InstallerGUI(tkinter.Frame):
 
     async def apply_operations(self):
         logging.info("Applying operations...")
+
+        if self.candidate_packages.translations.manifest is None:
+            self.show_alert_message_modal(
+                message="Çeviri yükleme manifestosu çevrimiçi olarak alınamadığı için yükleme işlemi yapılamaz."
+            )
+            return
+
         try:
             selected_modloader = self.modloader_choice_var.get()
             logging.debug(f"{selected_modloader = }")
@@ -521,17 +528,7 @@ class InstallerGUI(tkinter.Frame):
             self.show_traceback_window()
             return
         else:
-            alert = tkinter.Toplevel(self.master)
-            alert.grab_set()
-            alert.title("OMORI Türkçe Yama Yükleyicisi")
-            alert.iconbitmap(ICON_PATH)
-            alert.resizable(False, False)
-
-            tkinter.Label(alert, text="OMORI Türkçe Yama yükleme işlemi hatasızca tamamlanmıştır.") \
-                .pack(fill="x", padx=15, pady=(15, 5))
-
-            tkinter.Button(alert, text="Tamam", command=alert.destroy) \
-                .pack(ipadx=15, padx=15, pady=(5, 15))
+            self.show_alert_message_modal("OMORI Türkçe Yama yükleme işlemi hatasızca tamamlanmıştır.")
 
     def show_traceback_window(self):
         exc_type, exc_value, exc_traceback = sys.exc_info()
@@ -593,23 +590,16 @@ class InstallerGUI(tkinter.Frame):
 
         try:
             manifest = json.loads(urllib.request.urlopen(MANIFEST_URL).read().decode("utf-8"))
-        except Exception:
-            self.show_traceback_window()
+        except Exception as e:
+            self.show_alert_message_modal(f"Yama yükleme manifestosu internetten alınırken bir hata oluştu.\n\n{e}")
             return
 
         if manifest["manifestVersion"] != 1:
-            alert = tkinter.Toplevel(self.master)
-            alert.grab_set()
-            alert.title("Hata Raporlayıcı")
-            alert.iconbitmap(ICON_PATH)
-            alert.resizable(False, False)
-
-            tkinter.Label(
-                alert, anchor="w", justify="left", wraplength=350,
-                text="Yükleyicinin bu sürümü OMORI Türkçe Çeviri Ekibi Çevrimiçi Hizmetleri'nden alınan manifesti "
-                     "anlamlandıramıyor. Lütfen https://omori-turkce.com/indir sayfasını ziyaret ederek "
-                     "yükleyicinin daha yeni bir sürümünü edinin."
-            ).pack(fill="x", padx=15, pady=15)
+            self.show_alert_message_modal(
+                message="İnternetten alınan yama yükleme manifestosunu yükleyicinin bu sürümü anlayamıyor. Lütfen "
+                        "https://omori-turkce.com/indir adresine giderek yükleyicinin daha yeni bir sürümünü edinin.",
+                title="Hata Raporlayıcı"
+            )
             return
 
         index = {name: PackageState(version=data["version"], manifest=PackageManifest(name=name, **data))
@@ -620,6 +610,32 @@ class InstallerGUI(tkinter.Frame):
         logging.debug(f"{self.candidate_packages = }")
 
         self.react_widgets_to_env()
+
+    def show_alert_message_modal(self, message: str, title: str = "Durum Penceresi", button_text: str = "Tamam",
+                                 wraplength: int = 350, label_kwargs=None, label_pack_kwargs=None, button_kwargs=None,
+                                 button_pack_kwargs=None):
+        if label_kwargs is None:
+            label_kwargs = {}
+        if label_pack_kwargs is None:
+            label_pack_kwargs = {}
+        if button_kwargs is None:
+            button_kwargs = {}
+        if button_pack_kwargs is None:
+            button_pack_kwargs = {}
+
+        alert = tkinter.Toplevel(self.master)
+        alert.grab_set()
+        alert.title(title)
+        alert.iconbitmap(ICON_PATH)
+        alert.resizable(False, False)
+
+        label = tkinter.Label(alert, anchor="w", justify="left", wraplength=wraplength, text=message, **label_kwargs) \
+            .pack(fill="x", padx=15, pady=15, **label_pack_kwargs)
+
+        button = tkinter.Button(alert, text=button_text, command=alert.destroy, **button_kwargs)\
+            .pack(ipadx=15, padx=15, pady=(5, 15), **button_pack_kwargs)
+
+        return [alert, label, button]
 
 
 def set_checkbox_state(checkbox: tkinter.Checkbutton, condition: bool, true_text: str or None = None,
