@@ -556,33 +556,19 @@ class InstallerGUI(tkinter.Frame):
         about_window.iconbitmap(ICON_PATH)
         about_window.resizable(False, False)
 
-        tkinter.Label(
-            about_window, anchor="w", justify="left",
-            text="OMORI Türkçe Yama yükleyicisi"
-        ).pack(fill="x", padx=(55, 15), pady=(20, 0))
-
-        ABOUT_WRAPLENGTH = 400
-
-        tkinter.Label(
-            about_window, anchor="w", justify="left",
-            text="Yükleyici Sürüm 3"
-        ).pack(fill="x", padx=(55, 15), pady=(0, 10))
+        about_text = \
+            "OMORI Türkçe Yama yükleyicisi\n" \
+            "Sürüm 3\n" \
+            "© Emre Özcan. Tüm hakları saklıdır.\n" \
+            "\n" \
+            "OMORI Türkçe Çeviri Ekibi ikonu © 2021 claus\n" \
+            "\n\n\n" \
+            "UYARI: Bu program 5846 sayılı Fikir ve Sanat Eserleri Kanunu uyarınca korunmaktadır. Dağıtımı serbest " \
+            "değildir. Lütfen yeniden dağıtmayınız, https://omori-turkce.com/indir sayfasına bağlantı veriniz."
 
         tkinter.Label(
-            about_window, anchor="w", justify="left", wraplength=ABOUT_WRAPLENGTH,
-            text="OMORI Türkçe Çeviri Ekibi ikonu © 2021 claus"
-        ).pack(fill="x", padx=(55, 15), pady=(10, 0))
-        tkinter.Label(
-            about_window, anchor="w", justify="left", wraplength=ABOUT_WRAPLENGTH,
-            text="Yükleyici © 2021 Emre Özcan emreis.com"
-        ).pack(fill="x", padx=(55, 15), pady=(0, 20))
-
-        tkinter.Label(
-            about_window, anchor="w", justify="left", wraplength=ABOUT_WRAPLENGTH,
-            text="UYARI: Bu yükleyicinin dağıtım hakkı yalnızca OMORI Türkçe Çeviri Ekibi'ne verilmiştir. Başkaları "
-                 "tarafından dağıtılamaz. Yeniden dağıtmayınız, https://omori-turkce.com/indir sayfasına bağlantı "
-                 "veriniz."
-        ).pack(fill="x", padx=(55, 15), pady=(10, 20))
+            about_window, anchor="w", justify="left", wraplength=400, text=about_text
+        ).pack(fill="x", padx=(55, 15), pady=20)
 
     async def request_and_react_to_manifest(self):
         if not NETWORK_MODE_ENABLED:
@@ -632,7 +618,7 @@ class InstallerGUI(tkinter.Frame):
         label = tkinter.Label(alert, anchor="w", justify="left", wraplength=wraplength, text=message, **label_kwargs) \
             .pack(fill="x", padx=15, pady=15, **label_pack_kwargs)
 
-        button = tkinter.Button(alert, text=button_text, command=alert.destroy, **button_kwargs)\
+        button = tkinter.Button(alert, text=button_text, command=alert.destroy, **button_kwargs) \
             .pack(ipadx=15, padx=15, pady=(5, 15), **button_pack_kwargs)
 
         return [alert, label, button]
