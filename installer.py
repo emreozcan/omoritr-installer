@@ -559,12 +559,12 @@ class InstallerGUI(tkinter.Frame):
         about_text = \
             "OMORI Türkçe Yama yükleyicisi\n" \
             "Sürüm 3\n" \
-            "© Emre Özcan. Tüm hakları saklıdır.\n" \
+            "Copyright 2021-2022, Emre Özcan. Tüm hakları saklıdır.\n" \
             "\n" \
-            "OMORI Türkçe Çeviri Ekibi ikonu © 2021 claus\n" \
+            "OMORI Türkçe Çeviri Ekibi ikonu Copyright 2021, claus.\n" \
             "\n\n\n" \
             "UYARI: Bu program 5846 sayılı Fikir ve Sanat Eserleri Kanunu uyarınca korunmaktadır. Dağıtımı serbest " \
-            "değildir. Lütfen yeniden dağıtmayınız, https://omori-turkce.com/indir sayfasına bağlantı veriniz."
+            "değildir. Yeniden dağıtmayınız, https://omori-turkce.com/indir sayfasına bağlantı veriniz."
 
         tkinter.Label(
             about_window, anchor="w", justify="left", wraplength=400, text=about_text
@@ -648,7 +648,8 @@ if __name__ == '__main__':
     )
 
     logging.info("Starting omoritr-installer")
-    logging.info("OMORI Türkçe Çeviri Ekibi, 2021")
+    logging.info("Commisioned from Emre Özcan by OMORI Türkçe Çeviri Ekibi")
+    logging.info("Copyright 2021-2022, Emre Özcan. All rights reserved.")
     logging.info("https://omori-turkce.com")
 
     NETWORK_MODE_ENABLED = True
