@@ -635,6 +635,7 @@ if __name__ == '__main__':
     ONLINE_WEBSITE = "https://omori-turkce.com"
     ONLINE_CREDITS = "https://omori-turkce.com/emegi-gecenler"
 
-    ASYNC_LOOP = asyncio.get_event_loop()
+    ASYNC_LOOP = asyncio.new_event_loop()
+    asyncio.set_event_loop(ASYNC_LOOP)
 
     main(ASYNC_LOOP)
