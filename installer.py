@@ -127,10 +127,13 @@ def clear_oneloader(game_dir: Path) -> None:
 
 
 def clear_tl(game_dir: Path) -> None:
-    tl_path = game_dir / "www/mods/omoritr"
-    logging.debug(f"{tl_path = }")
-    if tl_path.exists():
-        safe_delete(game_dir, [tl_path])
+    safe_delete(
+        game_dir,
+        [
+            game_dir / "www/mods/omoritr",
+            game_dir / "www/mods/omoritr.zip"
+        ]
+    )
 
 
 def main(event_loop):
@@ -204,6 +207,8 @@ class InstallerGUI(tkinter.Frame):
     game_dir: Path
 
     omori_installed: bool
+
+    will_install_oneloader = True
 
     candidate_packages: PackageIndex = PackageIndex()
     installed_packages: PackageIndex = PackageIndex()
@@ -282,7 +287,7 @@ class InstallerGUI(tkinter.Frame):
         self.to_install_tl_checkbox.pack(fill="x", padx=5, pady=(0, 5))
 
         self.apply_button = tkinter.Button(
-            self.master, command=self.onclick_apply_button, text="Gerekli Paketleri İndir ve Uygula"
+            self.master, command=self.onclick_apply_button, state="disabled", text="Gerekli Paketleri İndir ve Uygula"
         )
         self.apply_button.pack(pady=5, ipadx=15)
 
@@ -295,40 +300,6 @@ class InstallerGUI(tkinter.Frame):
 
         self.credit_frame.pack(fill="x", side="bottom")
         # endregion
-
-    def react_to_modloader_selection(self):
-        if not hasattr(self, "steam_dir"):
-            return
-
-        self.apply_button.config(state="disabled")
-
-        if self.installed_packages.gomori.found and self.installed_packages.oneloader.found:
-            set_checkbox_state(self.to_install_modloader_checkbox, False)
-            self.to_install_modloader_checkbox.config(
-                text=f"OneLoader {self.candidate_packages.oneloader.version} yüklenecek"
-            )
-            self.goneloader_warning_label.pack_forget()
-        elif self.installed_packages.gomori.found and not self.installed_packages.oneloader.found:
-            set_checkbox_state(self.to_install_modloader_checkbox, True)
-            self.to_install_modloader_checkbox.config(
-                text=f"GOMORI'nin ({self.installed_packages.gomori.version}) yanına "
-                     f"OneLoader {self.candidate_packages.oneloader.version} yüklenecek"
-            )
-            self.goneloader_warning_label.config(
-                text="GOMORI yüklenmiş oyuna OneLoader yüklemek önerilmemektedir.\n"
-                     "Oyunu silip baştan yüklemeniz şiddetle tavsiye edilir.\n"
-                     "Oluşan hatalarda destek sağlanmayacaktır.",
-                fg="#FF0000"
-            )
-        else:
-            set_checkbox_state(self.to_install_modloader_checkbox, not self.installed_packages.oneloader.found)
-            self.to_install_modloader_checkbox.config(
-                text=f"OneLoader {self.candidate_packages.oneloader.version} yüklenecek"
-            )
-            self.goneloader_warning_label.pack_forget()
-            return
-
-        self.apply_button.config(state="normal")
 
     def react_env_to_steam_dir(self, steam_dir: Path):
         logging.info(f"Steam path updated. {steam_dir = }")
@@ -377,7 +348,9 @@ class InstallerGUI(tkinter.Frame):
             self.game_location_entry.delete(0, tkinter.END)
             self.game_location_entry.insert(0, os.path.realpath(self.game_dir))
             self.game_location_entry.config(state="disabled")
-            self.apply_button.config(state="normal")
+
+        if self.installed_packages.oneloader.version == self.candidate_packages.oneloader.version:
+            self.will_install_oneloader = False
 
         set_checkbox_state(self.game_installed_checkbox, self.omori_installed)
         set_checkbox_state(
@@ -410,7 +383,24 @@ class InstallerGUI(tkinter.Frame):
                 text=f"Türkçe Yama yüklenecek ({self.candidate_packages.translations.version})"
             )
 
-        self.react_to_modloader_selection()
+        set_checkbox_state(self.to_install_modloader_checkbox, self.will_install_oneloader)
+
+        if self.installed_packages.gomori.found:
+            self.to_install_modloader_checkbox.config(
+                text=f"GOMORI'nin ({self.installed_packages.gomori.version}) yanına "
+                     f"OneLoader {self.candidate_packages.oneloader.version} yüklenecek"
+            )
+            self.goneloader_warning_label.config(
+                text="GOMORI yüklenmiş oyuna OneLoader yüklemek önerilmemektedir.\n"
+                     "Oyunu silip baştan yüklemeniz şiddetle tavsiye edilir.\n"
+                     "Oluşan hatalarda destek sağlanmayacaktır.",
+                fg="#FF0000"
+            )
+        else:
+            self.to_install_modloader_checkbox.config(
+                text=f"OneLoader {self.candidate_packages.oneloader.version} yüklenecek"
+            )
+            self.goneloader_warning_label.pack_forget()
 
     def onclick_apply_button(self):
         waiting_area = tkinter.Toplevel(self.master)
@@ -470,7 +460,7 @@ class InstallerGUI(tkinter.Frame):
             return
 
         try:
-            if not self.installed_packages.oneloader.found:
+            if self.will_install_oneloader:
                 logging.info("Installing OneLoader...")
 
                 def oneloader_download_report_hook(*args):
@@ -528,7 +518,7 @@ class InstallerGUI(tkinter.Frame):
 
         about_text = \
             "OMORI Türkçe Yama yükleyicisi\n" \
-            "Sürüm 4\n" \
+            "Sürüm 5\n" \
             "Copyright 2021-2022, Emre Özcan. Tüm hakları saklıdır.\n" \
             "\n" \
             "OMORI Türkçe Çeviri Ekibi ikonu Copyright 2021, claus.\n" \
@@ -561,6 +551,8 @@ class InstallerGUI(tkinter.Frame):
 
         logging.debug(f"{manifest = }")
         logging.debug(f"{self.candidate_packages = }")
+
+        self.apply_button.config(state="normal")
 
         self.react_widgets_to_env()
 
