@@ -281,7 +281,9 @@ class InstallerGUI(tkinter.Frame):
         self.to_install_tl_checkbox = tkinter.Checkbutton(self.master, state="disabled", anchor="w")
         self.to_install_tl_checkbox.pack(fill="x", padx=5, pady=(0, 5))
 
-        self.apply_button = tkinter.Button(self.master, command=self.onclick_apply_button)
+        self.apply_button = tkinter.Button(
+            self.master, command=self.onclick_apply_button, text="Gerekli Paketleri İndir ve Uygula"
+        )
         self.apply_button.pack(pady=5, ipadx=15)
 
         self.credit_frame = tkinter.Frame(self.master)
@@ -407,11 +409,6 @@ class InstallerGUI(tkinter.Frame):
             self.to_install_tl_checkbox.config(
                 text=f"Türkçe Yama yüklenecek ({self.candidate_packages.translations.version})"
             )
-
-        if NETWORK_MODE_ENABLED:
-            self.apply_button.config(text="Gerekli Paketleri İndir ve Uygula")
-        else:
-            self.apply_button.config(text="Uygula")
 
         self.react_to_modloader_selection()
 
@@ -544,9 +541,6 @@ class InstallerGUI(tkinter.Frame):
         ).pack(fill="x", padx=(55, 15), pady=20)
 
     async def request_and_react_to_manifest(self):
-        if not NETWORK_MODE_ENABLED:
-            return
-
         try:
             manifest = json.loads(urllib.request.urlopen(MANIFEST_URL).read().decode("utf-8"))
         except Exception as e:
@@ -624,8 +618,6 @@ if __name__ == '__main__':
     logging.info("Commisioned from Emre Özcan by OMORI Türkçe Çeviri Ekibi")
     logging.info("Copyright 2021-2022, Emre Özcan. All rights reserved.")
     logging.info("https://omori-turkce.com")
-
-    NETWORK_MODE_ENABLED = True
 
     MANIFEST_URL = "https://omori-turkce.fra1.digitaloceanspaces.com/packages/confidential_manifest.json"
 
