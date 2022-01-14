@@ -409,16 +409,19 @@ class InstallerGUI(tkinter.Frame):
         waiting_area.iconbitmap(ICON_PATH)
         waiting_area.resizable(False, False)
 
-        tkinter.Label(
-            waiting_area, anchor="w", justify="left", wraplength=400,
-            text="OneLoader indirme ilerlemesi:"
-        ).pack(fill="x", padx=5, pady=(5, 0))
+        if self.will_install_oneloader:
+            tkinter.Label(
+                waiting_area, anchor="w", justify="left", wraplength=400,
+                text="OneLoader indirme ilerlemesi:"
+            ).pack(fill="x", padx=5, pady=(5, 0))
 
-        oneloader_progress = tkinter.ttk.Progressbar(waiting_area)
-        oneloader_progress.configure(
-            length=400, orient="horizontal", mode="determinate", maximum=100
-        )
-        oneloader_progress.pack(fill="x", padx=5, pady=(0, 5))
+            oneloader_progress = tkinter.ttk.Progressbar(waiting_area)
+            oneloader_progress.configure(
+                length=400, orient="horizontal", mode="determinate", maximum=100
+            )
+            oneloader_progress.pack(fill="x", padx=5, pady=(0, 5))
+        else:
+            oneloader_progress = tkinter.ttk.Progressbar()
 
         tkinter.Label(
             waiting_area, anchor="w", justify="left", wraplength=400,
@@ -484,6 +487,13 @@ class InstallerGUI(tkinter.Frame):
                 game_dir=self.game_dir,
                 report_hook=translations_download_report_hook
             )
+        except tkinter.TclError:
+            self.show_alert_message_modal(
+                "OMORI Türkçe Yama yükleme işlemini iptal ettiniz.\n"
+                "Gerekli oyun dosyaları hasar görmüş olabilir.\n"
+                "Steam'deki \"Oyun dosyalarının bütünlüğünü doğrula\" işlemini uygulamanız önerilir.",
+                wraplength=750
+            )
         except Exception:
             self.show_traceback_window()
             return
@@ -517,14 +527,14 @@ class InstallerGUI(tkinter.Frame):
         about_window.resizable(False, False)
 
         about_text = \
-            "OMORI Türkçe Yama yükleyicisi\n" \
-            "Sürüm 5\n" \
-            "Copyright 2021-2022, Emre Özcan. Tüm hakları saklıdır.\n" \
-            "\n" \
-            "OMORI Türkçe Çeviri Ekibi ikonu Copyright 2021, claus.\n" \
-            "\n\n\n" \
-            "UYARI: Bu program 5846 sayılı Fikir ve Sanat Eserleri Kanunu uyarınca korunmaktadır. Dağıtımı serbest " \
-            "değildir. Yeniden dağıtmayınız, https://omori-turkce.com/indir sayfasına bağlantı veriniz."
+            f"OMORI Türkçe Yama yükleyicisi\n" \
+            f"{VERSION_TEXT}\n" \
+            f"Copyright 2021-2022, Emre Özcan. Tüm hakları saklıdır.\n" \
+            f"\n" \
+            f"OMORI Türkçe Çeviri Ekibi ikonu Copyright 2021, claus.\n" \
+            f"\n\n\n" \
+            f"UYARI: Bu program 5846 sayılı Fikir ve Sanat Eserleri Kanunu uyarınca korunmaktadır. Dağıtımı serbest " \
+            f"değildir. Yeniden dağıtmayınız, https://omori-turkce.com/indir sayfasına bağlantı veriniz."
 
         tkinter.Label(
             about_window, anchor="w", justify="left", wraplength=400, text=about_text
@@ -599,6 +609,12 @@ def set_checkbox_state(checkbox: tkinter.Checkbutton, condition: bool, true_text
             )
 
 
+VERSION_CODE = "6"
+VERSION_TEXT = f"Sürüm {VERSION_CODE}"
+MANIFEST_URL = "https://omori-turkce.fra1.digitaloceanspaces.com/packages/confidential_manifest.json"
+ONLINE_WEBSITE = "https://omori-turkce.com"
+ONLINE_CREDITS = "https://omori-turkce.com/emegi-gecenler"
+
 if __name__ == '__main__':
     logging.basicConfig(
         format="%(asctime)s %(levelname)s %(message)s",
@@ -611,13 +627,8 @@ if __name__ == '__main__':
     logging.info("Copyright 2021-2022, Emre Özcan. All rights reserved.")
     logging.info("https://omori-turkce.com")
 
-    MANIFEST_URL = "https://omori-turkce.fra1.digitaloceanspaces.com/packages/confidential_manifest.json"
-
     BUNDLE_DIR = Path(__file__).parent
     ICON_PATH = BUNDLE_DIR / "res/transparent-256.ico"
-
-    ONLINE_WEBSITE = "https://omori-turkce.com"
-    ONLINE_CREDITS = "https://omori-turkce.com/emegi-gecenler"
 
     ASYNC_LOOP = asyncio.new_event_loop()
     asyncio.set_event_loop(ASYNC_LOOP)
