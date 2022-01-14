@@ -622,7 +622,7 @@ if __name__ == '__main__':
         filename="omoritr-installer.log"
     )
 
-    logging.info("Starting omoritr-installer")
+    logging.info(f"Starting omoritr-installer {VERSION_CODE}")
     logging.info("Commisioned from Emre Özcan by OMORI Türkçe Çeviri Ekibi")
     logging.info("Copyright 2021-2022, Emre Özcan. All rights reserved.")
     logging.info("https://omori-turkce.com")
