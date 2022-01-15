@@ -351,8 +351,10 @@ class InstallerGUI(tkinter.Frame):
             self.game_location_entry.insert(0, os.path.realpath(self.game_dir))
             self.game_location_entry.config(state="disabled")
 
-        if self.installed_packages.oneloader.version == self.candidate_packages.oneloader.version:
-            self.will_install_oneloader = False
+        self.will_install_oneloader = not (
+                self.installed_packages.oneloader.found and
+                self.installed_packages.oneloader.version == self.candidate_packages.oneloader.version
+        )
 
         set_checkbox_state(self.game_installed_checkbox, self.omori_installed)
         set_checkbox_state(
@@ -611,7 +613,7 @@ def set_checkbox_state(checkbox: tkinter.Checkbutton, condition: bool, true_text
             )
 
 
-VERSION_CODE = "7"
+VERSION_CODE = "8"
 VERSION_TEXT = f"Sürüm {VERSION_CODE}"
 MANIFEST_URL = "https://omori-turkce.fra1.digitaloceanspaces.com/packages/confidential_manifest.json"
 ONLINE_WEBSITE = "https://omori-turkce.com"
