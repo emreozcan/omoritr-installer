@@ -1,6 +1,7 @@
 import asyncio
 import dataclasses
 import json
+import logging.handlers
 import logging
 import os.path
 import re
@@ -31,26 +32,26 @@ def get_game_dir(steampath: Path) -> Path or None:
     library_map_file = steampath / "steamapps/libraryfolders.vdf"
     if not library_map_file.exists():
         return None
-    logging.warning(f"Collecting strings from {library_map_file = }")
+    LOG.warning(f"Collecting strings from {library_map_file = }")
     matches = re.finditer(r"\n\t*\"path\"\t\t\"(.+)\"\n", library_map_file.read_text("utf-8"))
     for match in matches:
         path_string = match.groups()[0]
         candidate_path = Path(path_string)
-        logging.debug(f"Checking library candidate {candidate_path = }")
+        LOG.debug(f"Checking library candidate {candidate_path = }")
         if not candidate_path.is_absolute():
-            logging.warning(" -> Path isn't absolute.")
+            LOG.warning(" -> Path isn't absolute.")
             continue
         if not candidate_path.exists():
-            logging.debug(" -> Path doesn't exist.")
+            LOG.debug(" -> Path doesn't exist.")
             continue
-        logging.debug(" -> Path exists.")
+        LOG.debug(" -> Path exists.")
         candidate_exec_path = candidate_path / "steamapps/common/OMORI/OMORI.exe"
         if candidate_exec_path.exists():
-            logging.debug(" -> It has OMORI.")
+            LOG.debug(" -> It has OMORI.")
             game_dir = candidate_exec_path.parent
-            logging.info(f"Game found at {game_dir = }")
+            LOG.info(f"Game found at {game_dir = }")
             return game_dir
-        logging.debug(" -> It doesn't have OMORI.")
+        LOG.debug(" -> It doesn't have OMORI.")
     return None
 
 
@@ -88,26 +89,26 @@ def get_installed_translation_version(gamepath: Path) -> str or None:
 
 
 def safe_delete(container: Path or str, paths: list[Path or str]) -> None:
-    logging.warning("Collecting information for delete operation")
+    LOG.warning("Collecting information for delete operation")
     real_container_path = os.path.realpath(container)
-    logging.debug(f"{container = }")
-    logging.warning(f"{real_container_path = }")
+    LOG.debug(f"{container = }")
+    LOG.warning(f"{real_container_path = }")
     for target_path in paths:
-        logging.warning(f" -- Collecting information about {target_path = }")
+        LOG.warning(f" -- Collecting information about {target_path = }")
         real_target_path = os.path.realpath(target_path)
-        logging.debug(f"{target_path = }")
-        logging.warning(f"{real_target_path = }")
+        LOG.debug(f"{target_path = }")
+        LOG.warning(f"{real_target_path = }")
         if not os.path.exists(real_target_path):
-            logging.error("This file does not exist. Why?")
+            LOG.error("This file does not exist. Why?")
             continue
         if not real_target_path.startswith(real_container_path):
-            logging.error("This file is not inside the container. Why?")
+            LOG.error("This file is not inside the container. Why?")
             continue
         if os.path.isdir(real_target_path):
-            logging.debug("Path is a directory. Performing recursive directory deleting operation.")
+            LOG.debug("Path is a directory. Performing recursive directory deleting operation.")
             shutil.rmtree(real_target_path)
         else:
-            logging.debug("Path is not a directory. Performing unlinking operation.")
+            LOG.debug("Path is not a directory. Performing unlinking operation.")
             os.unlink(real_target_path)
 
 
@@ -116,11 +117,11 @@ def clear_gomori(game_dir: Path) -> None:
     gomori_dirs = []
     for name in names:
         glob_path = str(game_dir / name)
-        logging.debug(f"{glob_path = }")
+        LOG.debug(f"{glob_path = }")
         glob_result = glob(glob_path)
-        logging.debug(f"{glob_result = }")
+        LOG.debug(f"{glob_result = }")
         gomori_dirs.extend(glob_result)
-    logging.debug(f"{gomori_dirs = }")
+    LOG.debug(f"{gomori_dirs = }")
     safe_delete(game_dir, gomori_dirs)
 
 
@@ -152,7 +153,7 @@ def main(event_loop):
     try:
         steam_dir = get_steam_path()
     except FileNotFoundError:
-        logging.warning("Steam not found.")
+        LOG.warning("Steam not found.")
 
     installer_gui.react_env_to_steam_dir(steam_dir)
 
@@ -304,13 +305,13 @@ class InstallerGUI(tkinter.Frame):
         # endregion
 
     def react_env_to_steam_dir(self, steam_dir: Path):
-        logging.info(f"Steam path updated. {steam_dir = }")
+        LOG.info(f"Steam path updated. {steam_dir = }")
         self.steam_dir = steam_dir
         self.game_dir = get_game_dir(steampath=self.steam_dir)
-        logging.debug(f"{self.game_dir = }")
+        LOG.debug(f"{self.game_dir = }")
 
         self.omori_installed = self.game_dir is not None
-        logging.debug(f"{self.omori_installed = }")
+        LOG.debug(f"{self.omori_installed = }")
 
         if self.omori_installed:
             self.installed_packages.gomori.found = is_gomori_installed(gamepath=self.game_dir)
@@ -325,8 +326,8 @@ class InstallerGUI(tkinter.Frame):
             if self.installed_packages.translations.found:
                 self.installed_packages.translations.version = get_installed_translation_version(gamepath=self.game_dir)
 
-        logging.debug(f"{self.installed_packages = }")
-        logging.debug(f"{self.omori_installed = }")
+        LOG.debug(f"{self.installed_packages = }")
+        LOG.debug(f"{self.omori_installed = }")
 
         self.react_widgets_to_env()
 
@@ -452,7 +453,7 @@ class InstallerGUI(tkinter.Frame):
         threading.Thread(target=apply_operations).start()
 
     async def apply_operations(self, loader_bar, tl_bar):
-        logging.info("Applying operations...")
+        LOG.info("Applying operations...")
 
         def download_report_hook(progressbar, count, block_size, total_size):
             progress = count * block_size
@@ -468,7 +469,7 @@ class InstallerGUI(tkinter.Frame):
 
         try:
             if self.will_install_oneloader:
-                logging.info("Installing OneLoader...")
+                LOG.info("Installing OneLoader...")
 
                 def oneloader_download_report_hook(*args):
                     download_report_hook(loader_bar, *args)
@@ -479,10 +480,10 @@ class InstallerGUI(tkinter.Frame):
                 )
 
             if self.installed_packages.translations.found:
-                logging.info("Uninstalling translations...")
+                LOG.info("Uninstalling translations...")
                 clear_tl(game_dir=self.game_dir)
 
-            logging.info("Installing translations...")
+            LOG.info("Installing translations...")
 
             def translations_download_report_hook(*args):
                 download_report_hook(tl_bar, *args)
@@ -508,7 +509,7 @@ class InstallerGUI(tkinter.Frame):
         exc_type, exc_value, exc_traceback = sys.exc_info()
         formatted_exception = "".join(traceback.format_exception(exc_type, exc_value, exc_traceback))
 
-        logging.critical(formatted_exception)
+        LOG.critical(formatted_exception)
 
         alert = tkinter.Toplevel(self.master)
         alert.grab_set()
@@ -563,8 +564,8 @@ class InstallerGUI(tkinter.Frame):
                  for name, data in manifest["packages"].items()}
         self.candidate_packages = PackageIndex(**index)
 
-        logging.debug(f"{manifest = }")
-        logging.debug(f"{self.candidate_packages = }")
+        LOG.debug(f"{manifest = }")
+        LOG.debug(f"{self.candidate_packages = }")
 
         self.apply_button.config(state="normal")
 
@@ -613,18 +614,25 @@ def set_checkbox_state(checkbox: tkinter.Checkbutton, condition: bool, true_text
             )
 
 
-VERSION_CODE = "8"
+VERSION_CODE = "9"
 VERSION_TEXT = f"Sürüm {VERSION_CODE}"
 MANIFEST_URL = "https://omori-turkce.fra1.digitaloceanspaces.com/packages/confidential_manifest.json"
 ONLINE_WEBSITE = "https://omori-turkce.com"
 ONLINE_CREDITS = "https://omori-turkce.com/emegi-gecenler"
 
 if __name__ == '__main__':
-    logging.basicConfig(
-        format="%(asctime)s %(levelname)s %(message)s",
-        level=logging.DEBUG,
-        filename="omoritr-installer.log"
+    LOG_HANDLER = logging.handlers.RotatingFileHandler(
+        filename="omoritr-installer.log",
+        encoding="utf-8",
+        backupCount=3,
+        maxBytes=1000000
     )
+    LOG_HANDLER.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(message)s"))
+    LOG_HANDLER.setLevel(logging.DEBUG)
+
+    LOG = logging.getLogger("root")
+    LOG.setLevel(logging.DEBUG)
+    LOG.addHandler(LOG_HANDLER)
 
     logging.info(f"Starting omoritr-installer {VERSION_CODE}")
     logging.info("Commisioned from Emre Özcan by OMORI Türkçe Çeviri Ekibi")
