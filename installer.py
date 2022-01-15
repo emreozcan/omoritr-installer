@@ -3,6 +3,7 @@ import dataclasses
 import json
 import logging
 import os.path
+import re
 import shutil
 import sys
 import tempfile
@@ -31,11 +32,14 @@ def get_game_dir(steampath: Path) -> Path or None:
     if not library_map_file.exists():
         return None
     logging.warning(f"Collecting strings from {library_map_file = }")
-    strings = library_map_file.read_text("utf-8").split("\"")
-    logging.debug(f"Collected {len(strings) = } strings.")
-    for string in strings:
-        candidate_path = Path(string)
+    matches = re.finditer(r"\n\t*\"path\"\t\t\"(.+)\"\n", library_map_file.read_text("utf-8"))
+    for match in matches:
+        path_string = match.groups()[0]
+        candidate_path = Path(path_string)
         logging.debug(f"Checking library candidate {candidate_path = }")
+        if not candidate_path.is_absolute():
+            logging.warning(" -> Path isn't absolute.")
+            continue
         if not candidate_path.exists():
             logging.debug(" -> Path doesn't exist.")
             continue
@@ -47,8 +51,6 @@ def get_game_dir(steampath: Path) -> Path or None:
             logging.info(f"Game found at {game_dir = }")
             return game_dir
         logging.debug(" -> It doesn't have OMORI.")
-    logging.error("No string contained a library path that had OMORI in it.")
-    logging.error("".join(["Listing all strings:\n", "\n".join(strings)]))
     return None
 
 
@@ -609,7 +611,7 @@ def set_checkbox_state(checkbox: tkinter.Checkbutton, condition: bool, true_text
             )
 
 
-VERSION_CODE = "6"
+VERSION_CODE = "7"
 VERSION_TEXT = f"Sürüm {VERSION_CODE}"
 MANIFEST_URL = "https://omori-turkce.fra1.digitaloceanspaces.com/packages/confidential_manifest.json"
 ONLINE_WEBSITE = "https://omori-turkce.com"
