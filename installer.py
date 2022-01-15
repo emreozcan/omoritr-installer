@@ -63,7 +63,7 @@ def is_oneloader_installed(gamepath: Path) -> bool:
 
 
 def are_translations_installed(gamepath: Path) -> bool:
-    return (gamepath / "www/mods/omoritr/mod.json").exists()
+    return (gamepath / "www/mods/omoritr.zip").exists() or (gamepath / "www/mods/omoritr/mod.json").exists()
 
 
 def get_installed_gomori_version(gamepath: Path) -> str or None:
