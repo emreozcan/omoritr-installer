@@ -13,10 +13,11 @@ import tkinter
 import tkinter.ttk
 import traceback
 import urllib.request
-import webbrowser
+from webbrowser import open as wopen
 import winreg
 from glob import glob
 from pathlib import Path
+from zipfile import ZipFile
 
 
 def get_steam_path() -> Path:
@@ -64,7 +65,7 @@ def is_oneloader_installed(gamepath: Path) -> bool:
 
 
 def are_translations_installed(gamepath: Path) -> bool:
-    return (gamepath / "www/mods/omoritr.zip").exists() or (gamepath / "www/mods/omoritr/mod.json").exists()
+    return (gamepath / "www/mods/omoritr.zip").exists() ^ (gamepath / "www/mods/omoritr/mod.json").exists()
 
 
 def get_installed_gomori_version(gamepath: Path) -> str or None:
@@ -82,10 +83,16 @@ def get_installed_oneloader_version(gamepath: Path) -> str or None:
 
 
 def get_installed_translation_version(gamepath: Path) -> str or None:
-    manifest_path = gamepath / "www/mods/omoritr/mod.json"
-    if not manifest_path.exists():
+    loose_manifest_path = gamepath / "www/mods/omoritr/mod.json"
+    mod_archive_path = gamepath / "www/mods/omoritr.zip"
+    if not are_translations_installed(gamepath):
         return None
-    return json.loads(manifest_path.read_text(encoding="utf-8"))["version"]
+    if mod_archive_path.exists():
+        with ZipFile(mod_archive_path, "r") as mod_archive:
+            manifest_contents = mod_archive.read("mod.json")
+    else:
+        manifest_contents = loose_manifest_path.read_text(encoding="utf-8")
+    return json.loads(manifest_contents)["version"]
 
 
 def safe_delete(container: Path or str, paths: list[Path or str]) -> None:
@@ -201,10 +208,6 @@ class PackageIndex:
     translations: PackageState = dataclasses.field(default_factory=PackageState)
 
 
-def onclick_show_debug_dump():
-    webbrowser.open("omoritr-installer.log")
-
-
 class InstallerGUI(tkinter.Frame):
     steam_dir: Path
     game_dir: Path
@@ -228,15 +231,22 @@ class InstallerGUI(tkinter.Frame):
         self.menu = tkinter.Menu(self.master)
         self.master.config(menu=self.menu)
 
+        self.file_menu = tkinter.Menu(self.menu, tearoff=0)
+        self.menu.add_cascade(label="Dosya", menu=self.file_menu)
+
+        self.file_menu.add_command(label="Yenile", command=self.refresh)
+        self.file_menu.add_separator()
+        self.file_menu.add_command(label="Kayıt klasörünü aç", command=lambda: wopen(self.game_dir / "www/save"))
+
         self.help_menu = tkinter.Menu(self.menu, tearoff=0)
         self.menu.add_cascade(label="Yardım", menu=self.help_menu)
 
         self.help_menu.add_command(label="Yükleyici hakkında...", command=self.onclick_about_installer)
         self.help_menu.add_separator()
-        self.help_menu.add_command(label="İnternet sitemiz", command=lambda: webbrowser.open(ONLINE_WEBSITE))
-        self.help_menu.add_command(label="Çeviride emeği geçenler", command=lambda: webbrowser.open(ONLINE_CREDITS))
+        self.help_menu.add_command(label="İnternet sitemiz", command=lambda: wopen(ONLINE_WEBSITE))
+        self.help_menu.add_command(label="Çeviride emeği geçenler", command=lambda: wopen(ONLINE_CREDITS))
         self.help_menu.add_separator()
-        self.help_menu.add_command(label="Hata ayıklama dökümünü görüntüle", command=onclick_show_debug_dump)
+        self.help_menu.add_command(label="Hata ayıklama dökümünü görüntüle", command=lambda: wopen(LOG_FILE))
 
         self.welcome_label = tkinter.Label(
             self.master,
@@ -597,6 +607,17 @@ class InstallerGUI(tkinter.Frame):
 
         return [alert, label, button]
 
+    def refresh(self):
+        self.apply_button.config(state="disabled")
+
+        async def _refresh():
+            await self.request_and_react_to_manifest()
+            self.react_env_to_steam_dir(self.steam_dir)
+
+        threading.Thread(
+            target=lambda: self.event_loop.run_until_complete(_refresh())
+        ).start()
+
 
 def set_checkbox_state(checkbox: tkinter.Checkbutton, condition: bool, true_text: str or None = None,
                        false_text: str or None = None):
@@ -614,15 +635,16 @@ def set_checkbox_state(checkbox: tkinter.Checkbutton, condition: bool, true_text
             )
 
 
-VERSION_CODE = "9"
+VERSION_CODE = "10"
 VERSION_TEXT = f"Sürüm {VERSION_CODE}"
 MANIFEST_URL = "https://omori-turkce.fra1.digitaloceanspaces.com/packages/confidential_manifest.json"
 ONLINE_WEBSITE = "https://omori-turkce.com"
 ONLINE_CREDITS = "https://omori-turkce.com/emegi-gecenler"
 
 if __name__ == '__main__':
+    LOG_FILE = Path(__file__).parent / "omoritr-installer.log"
     LOG_HANDLER = logging.handlers.RotatingFileHandler(
-        filename="omoritr-installer.log",
+        filename=LOG_FILE,
         encoding="utf-8",
         backupCount=3,
         maxBytes=1000000
