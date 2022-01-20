@@ -235,8 +235,6 @@ class InstallerGUI(tkinter.Frame):
         self.menu.add_cascade(label="Dosya", menu=self.file_menu)
 
         self.file_menu.add_command(label="Yenile", command=self.refresh)
-        self.file_menu.add_separator()
-        self.file_menu.add_command(label="Kayıt klasörünü aç", command=lambda: wopen(self.game_dir / "www/save"))
 
         self.help_menu = tkinter.Menu(self.menu, tearoff=0)
         self.menu.add_cascade(label="Yardım", menu=self.help_menu)
@@ -635,7 +633,7 @@ def set_checkbox_state(checkbox: tkinter.Checkbutton, condition: bool, true_text
             )
 
 
-VERSION_CODE = "10"
+VERSION_CODE = "11"
 VERSION_TEXT = f"Sürüm {VERSION_CODE}"
 MANIFEST_URL = "https://omori-turkce.fra1.digitaloceanspaces.com/packages/confidential_manifest.json"
 ONLINE_WEBSITE = "https://omori-turkce.com"
