@@ -562,9 +562,10 @@ class InstallerGUI(tkinter.Frame):
 
         if manifest["manifestVersion"] != 1:
             self.show_alert_message_modal(
-                message="İnternetten alınan yama yükleme manifestosunu yükleyicinin bu sürümü anlayamıyor. Lütfen "
-                        "https://omori-turkce.com/indir adresine giderek yükleyicinin daha yeni bir sürümünü edinin.",
-                title="Hata Raporlayıcı"
+                message="Devam etmek için bu yükleme programını güncellemeniz gerekiyor.",
+                title="Hata Raporlayıcı",
+                button_text="İndirme sayfasına git",
+                button_kwargs={"command": lambda: wopen(ONLINE_DOWNLOAD_PAGE)}
             )
             return
 
@@ -600,8 +601,11 @@ class InstallerGUI(tkinter.Frame):
         label = tkinter.Label(alert, anchor="w", justify="left", wraplength=wraplength, text=message, **label_kwargs)
         label.pack(fill="x", padx=15, pady=15, **label_pack_kwargs)
 
-        button = tkinter.Button(alert, text=button_text, command=alert.destroy, **button_kwargs)
-        button.pack(ipadx=15, padx=15, pady=(5, 15), **button_pack_kwargs)
+        button_kwargs = {"text": button_text, "command": alert.destroy, **button_kwargs}
+        button_pack_kwargs = {"ipadx":15, "padx":15, "pady": (5, 15), **button_pack_kwargs}
+
+        button = tkinter.Button(alert, **button_kwargs)
+        button.pack(**button_pack_kwargs)
 
         return [alert, label, button]
 
@@ -633,11 +637,13 @@ def set_checkbox_state(checkbox: tkinter.Checkbutton, condition: bool, true_text
             )
 
 
-VERSION_CODE = "11"
+VERSION_CODE = "12"
 VERSION_TEXT = f"Sürüm {VERSION_CODE}"
-MANIFEST_URL = "https://omori-turkce.fra1.digitaloceanspaces.com/packages/confidential_manifest.json"
-ONLINE_WEBSITE = "https://omori-turkce.com"
-ONLINE_CREDITS = "https://omori-turkce.com/emegi-gecenler"
+MANIFEST_URL = "https://omoritr.emreis.com/manifests/download_manifest/v1_manifest.json"
+
+ONLINE_DOWNLOAD_PAGE = "https://omoritr.emreis.com/download_page"
+ONLINE_WEBSITE = "https://omoritr.emreis.com/website"
+ONLINE_CREDITS = "https://omoritr.emreis.com/credits"
 
 if __name__ == '__main__':
     LOG_FILE = Path(__file__).parent / "omoritr-installer.log"
