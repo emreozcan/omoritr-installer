@@ -639,7 +639,7 @@ def set_checkbox_state(checkbox: tkinter.Checkbutton, condition: bool, true_text
 
 VERSION_CODE = "12"
 VERSION_TEXT = f"Sürüm {VERSION_CODE}"
-MANIFEST_URL = "https://omoritr.emreis.com/manifests/download_manifest/v1_manifest.json"
+MANIFEST_URL = "https://omoritr.emreis.com/manifest.json"
 
 ONLINE_DOWNLOAD_PAGE = "https://omoritr.emreis.com/download_page"
 ONLINE_WEBSITE = "https://omoritr.emreis.com/website"
