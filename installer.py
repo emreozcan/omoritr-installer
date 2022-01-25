@@ -602,7 +602,7 @@ class InstallerGUI(tkinter.Frame):
         label.pack(fill="x", padx=15, pady=15, **label_pack_kwargs)
 
         button_kwargs = {"text": button_text, "command": alert.destroy, **button_kwargs}
-        button_pack_kwargs = {"ipadx":15, "padx":15, "pady": (5, 15), **button_pack_kwargs}
+        button_pack_kwargs = {"ipadx": 15, "padx": 15, "pady": (5, 15), **button_pack_kwargs}
 
         button = tkinter.Button(alert, **button_kwargs)
         button.pack(**button_pack_kwargs)
