@@ -12,12 +12,13 @@ import threading
 import tkinter
 import tkinter.ttk
 import traceback
-import urllib.request
 from webbrowser import open as wopen
 import winreg
 from glob import glob
 from pathlib import Path
 from zipfile import ZipFile
+
+import requests
 
 
 def get_steam_path() -> Path:
@@ -147,8 +148,6 @@ def clear_tl(game_dir: Path) -> None:
 
 
 def main(event_loop):
-    urllib.request.urlcleanup()
-
     root = tkinter.Tk()
     root.title("OMORI Türkçe Yama Yükleyicisi")
     root.iconbitmap(ICON_PATH)
@@ -181,15 +180,23 @@ class PackageManifest:
 
     def install(self, game_dir: Path, report_hook: callable = None):
         download_directory = tempfile.TemporaryDirectory(prefix="omori-turkce-package-")
-        filename, _ = urllib.request.urlretrieve(
-            url=self.path,
-            filename=Path(download_directory.name) / self.filename,
-            reporthook=report_hook
-        )
+        downloaded_archive_path = Path(download_directory.name) / self.filename
+        with open(downloaded_archive_path, "wb") as downloaded_file:
+            response = requests.get(self.path, stream=True)
+            total_length = response.headers.get("content-length")
+            if total_length is None:
+                downloaded_file.write(response.content)
+            else:
+                downloaded_length = 0
+                total_length = int(total_length)
+                for data in response.iter_content(chunk_size=4096):
+                    downloaded_length += len(data)
+                    downloaded_file.write(data)
+                    report_hook(downloaded_length, 1, total_length)
         extract_target = game_dir / self.target
         if not os.path.realpath(extract_target).startswith(os.path.realpath(game_dir)):
             raise RuntimeError(f"{self.name}: Manifesto hedefi ({self.target}) geçersiz.")
-        shutil.unpack_archive(filename=filename, extract_dir=extract_target)
+        shutil.unpack_archive(filename=downloaded_archive_path, extract_dir=extract_target)
         download_directory.cleanup()
 
 
@@ -555,7 +562,7 @@ class InstallerGUI(tkinter.Frame):
 
     async def request_and_react_to_manifest(self):
         try:
-            manifest = json.loads(urllib.request.urlopen(MANIFEST_URL).read().decode("utf-8"))
+            manifest = requests.get(MANIFEST_URL).json()
         except Exception as e:
             self.show_alert_message_modal(f"Yama yükleme manifestosu internetten alınırken bir hata oluştu.\n\n{e}")
             return
@@ -637,7 +644,7 @@ def set_checkbox_state(checkbox: tkinter.Checkbutton, condition: bool, true_text
             )
 
 
-VERSION_CODE = "12"
+VERSION_CODE = "13"
 VERSION_TEXT = f"Sürüm {VERSION_CODE}"
 MANIFEST_URL = "https://omoritr.emreis.com/manifest.json"
 

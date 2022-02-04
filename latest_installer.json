@@ -1,0 +1,11 @@
+{
+    "manifestVersion": 1,
+    "packages": {
+        "installer": {
+            "path": "https://omori-turkce.fra1.digitaloceanspaces.com/installer/omoritr-setup-13.exe",
+            "filename": "omoritr-setup-13.exe",
+            "version": "13",
+            "target": ""
+        }
+    }
+}
