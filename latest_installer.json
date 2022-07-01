@@ -2,10 +2,9 @@
     "manifestVersion": 1,
     "packages": {
         "installer": {
-            "path": "https://omori-turkce.fra1.digitaloceanspaces.com/installer/omoritr-setup-14.exe",
-            "filename": "omoritr-setup-14.exe",
-            "version": "Sürüm 14",
-            "target": ""
+            "path": "https://omori-turkce.fra1.digitaloceanspaces.com/installer/omoritr-setup-15.exe",
+            "filename": "omoritr-setup-15.exe",
+            "version": "Sürüm 15"
         }
     }
 }

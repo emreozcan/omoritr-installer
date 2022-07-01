@@ -89,8 +89,11 @@ def get_installed_translation_version(gamepath: Path) -> str or None:
     if not are_translations_installed(gamepath):
         return None
     if mod_archive_path.exists():
-        with ZipFile(mod_archive_path, "r") as mod_archive:
-            manifest_contents = mod_archive.read("mod.json")
+        try:
+            with ZipFile(mod_archive_path, "r") as mod_archive:
+                manifest_contents = mod_archive.read("mod.json")
+        except KeyError:
+            return "hatalı yükleme"
     else:
         manifest_contents = loose_manifest_path.read_text(encoding="utf-8")
     return json.loads(manifest_contents)["version"]
@@ -644,7 +647,7 @@ def set_checkbox_state(checkbox: tkinter.Checkbutton, condition: bool, true_text
             )
 
 
-VERSION_CODE = "14"
+VERSION_CODE = "15"
 VERSION_TEXT = f"Sürüm {VERSION_CODE}"
 MANIFEST_URL = "https://omoritr.emreis.com/packages/v1_manifest.json"
 
@@ -668,7 +671,6 @@ if __name__ == '__main__':
     LOG.addHandler(LOG_HANDLER)
 
     logging.info(f"Starting omoritr-installer {VERSION_CODE}")
-    logging.info("Commisioned from Emre Özcan by OMORI Türkçe Çeviri Ekibi")
     logging.info("Copyright 2021-2022, Emre Özcan. All rights reserved.")
     logging.info("https://omori-turkce.com")
 
