@@ -647,7 +647,7 @@ def set_checkbox_state(checkbox: tkinter.Checkbutton, condition: bool, true_text
             )
 
 
-VERSION_CODE = "15"
+VERSION_CODE = "16"
 VERSION_TEXT = f"Sürüm {VERSION_CODE}"
 MANIFEST_URL = "https://omoritr.emreis.com/packages/v1_manifest.json"
 
@@ -655,8 +655,11 @@ ONLINE_DOWNLOAD_PAGE = "https://omoritr.emreis.com/download_page"
 ONLINE_WEBSITE = "https://omoritr.emreis.com/website"
 ONLINE_CREDITS = "https://omoritr.emreis.com/credits"
 
+IS_RUNNING_FROZEN = getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS")
+RUNNING_FILE_PATH = Path(__file__) if not IS_RUNNING_FROZEN else Path(sys.executable)
+
 if __name__ == '__main__':
-    LOG_FILE = Path(__file__).parent / "omoritr-installer.log"
+    LOG_FILE = RUNNING_FILE_PATH.parent / "omoritr-installer.log"
     LOG_HANDLER = logging.handlers.RotatingFileHandler(
         filename=LOG_FILE,
         encoding="utf-8",
@@ -671,11 +674,17 @@ if __name__ == '__main__':
     LOG.addHandler(LOG_HANDLER)
 
     logging.info(f"Starting omoritr-installer {VERSION_CODE}")
-    logging.info("Copyright 2021-2022, Emre Özcan. All rights reserved.")
+    logging.info("Copyright 2021-2023, Emre Özcan. All rights reserved.")
     logging.info("https://omori-turkce.com")
+    logging.info("https://emreis.com")
 
     BUNDLE_DIR = Path(__file__).parent
     ICON_PATH = BUNDLE_DIR / "res/transparent-256.ico"
+
+    LOG.debug(f"{IS_RUNNING_FROZEN = }")
+    LOG.debug(f"{RUNNING_FILE_PATH = }")
+    LOG.debug(f"{LOG_FILE = }")
+    LOG.debug(f"{BUNDLE_DIR = }")
 
     ASYNC_LOOP = asyncio.new_event_loop()
     asyncio.set_event_loop(ASYNC_LOOP)
