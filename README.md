@@ -1,6 +1,6 @@
 # omoritr-installer
 
-OMORI Türkçe Çeviri Ekibi tarafından hazırlanan otomatik OMORI mod kurulum
+OMORI Türkçe Çeviri Ekibi için hazırlanan otomatik OMORI mod kurulum
 programı.
 
 # İndirme
