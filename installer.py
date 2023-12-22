@@ -1,8 +1,24 @@
+#  Copyright 2021-2023 Emre Özcan
+#
+#  installer.py
+#
+#  Licensed under the Apache License, Version 2.0 (the "License");
+#  you may not use this file except in compliance with the License.
+#  You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+#  Unless required by applicable law or agreed to in writing, software
+#  distributed under the License is distributed on an "AS IS" BASIS,
+#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#  See the License for the specific language governing permissions and
+#  limitations under the License.
+
 import asyncio
 import dataclasses
 import json
-import logging.handlers
 import logging
+import logging.handlers
 import os.path
 import re
 import shutil
@@ -12,10 +28,10 @@ import threading
 import tkinter
 import tkinter.ttk
 import traceback
-from webbrowser import open as wopen
 import winreg
 from glob import glob
 from pathlib import Path
+from webbrowser import open as wopen
 from zipfile import ZipFile
 
 import requests
@@ -549,15 +565,11 @@ class InstallerGUI(tkinter.Frame):
         about_window.iconbitmap(ICON_PATH)
         about_window.resizable(False, False)
 
-        about_text = \
-            f"OMORI Türkçe Yama yükleyicisi\n" \
-            f"{VERSION_TEXT}\n" \
-            f"Copyright 2021-2022, Emre Özcan. Tüm hakları saklıdır.\n" \
-            f"\n" \
-            f"OMORI Türkçe Çeviri Ekibi ikonu Copyright 2021, claus.\n" \
-            f"\n\n\n" \
-            f"UYARI: Bu program 5846 sayılı Fikir ve Sanat Eserleri Kanunu uyarınca korunmaktadır. Dağıtımı serbest " \
-            f"değildir. Yeniden dağıtmayınız, https://omori-turkce.com/indir sayfasına bağlantı veriniz."
+        about_text = (
+            f"OMORI Türkçe Yama yükleyicisi\n"
+            f"https://omori-turkce.com/indir\n\n"
+            f"{VERSION_TEXT}\n\n{LICENSE_TEXT}"
+        )
 
         tkinter.Label(
             about_window, anchor="w", justify="left", wraplength=400, text=about_text
@@ -647,7 +659,22 @@ def set_checkbox_state(checkbox: tkinter.Checkbutton, condition: bool, true_text
             )
 
 
-VERSION_CODE = "16"
+LICENSE_TEXT = """Copyright 2021-2023 Emre Özcan
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License."""
+
+
+VERSION_CODE = "17"
 VERSION_TEXT = f"Sürüm {VERSION_CODE}"
 MANIFEST_URL = "https://omoritr.emreis.com/packages/v1_manifest.json"
 
@@ -663,8 +690,8 @@ if __name__ == '__main__':
     LOG_HANDLER = logging.handlers.RotatingFileHandler(
         filename=LOG_FILE,
         encoding="utf-8",
-        backupCount=3,
-        maxBytes=1000000
+        backupCount=1,
+        maxBytes=5000
     )
     LOG_HANDLER.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(message)s"))
     LOG_HANDLER.setLevel(logging.DEBUG)
@@ -674,7 +701,7 @@ if __name__ == '__main__':
     LOG.addHandler(LOG_HANDLER)
 
     logging.info(f"Starting omoritr-installer {VERSION_CODE}")
-    logging.info("Copyright 2021-2023, Emre Özcan. All rights reserved.")
+    logging.info(LICENSE_TEXT)
     logging.info("https://omori-turkce.com")
     logging.info("https://emreis.com")
 
